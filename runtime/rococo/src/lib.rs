@@ -40,7 +40,7 @@ use runtime_parachains::{
 };
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{EnsureOrigin, Filter, KeyOwnerProofSystem, Randomness},
+	traits::{EnsureOrigin, Filter, KeyOwnerProofSystem, Randomness, BasicAccount},
 	weights::Weight,
 };
 use sp_runtime::{
@@ -176,6 +176,7 @@ construct_runtime! {
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Module, Call, Storage, Config, Event<T>},
+		Accounts: pallet_accounts::{Module, Call, Storage, Event<T>},
 
 		// Must be before session.
 		Babe: pallet_babe::{Module, Call, Storage, Config, ValidateUnsigned},
@@ -249,11 +250,16 @@ impl frame_system::Config for Runtime {
 	type BlockHashCount = BlockHashCount;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
+	type AccountStorage = Accounts;
+	type SystemWeightInfo = ();
+	type SS58Prefix = SS58Prefix;
+}
+
+impl pallet_accounts::Config for Runtime {
+	type Event = Event;
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type SystemWeightInfo = ();
-	type SS58Prefix = SS58Prefix;
 }
 
 parameter_types! {
@@ -354,7 +360,8 @@ impl pallet_balances::Config for Runtime {
 	type DustRemoval = ();
 	type Event = Event;
 	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = System;
+	type AccountStore = Accounts;
+	type ReferencedAccount = Accounts;
 	type MaxLocks = MaxLocks;
 	type WeightInfo = ();
 }
@@ -426,6 +433,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+	type ReferencedAccount = Accounts;
 	type WeightInfo = ();
 }
 
@@ -877,7 +885,7 @@ sp_api::impl_runtime_apis! {
 
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
 		fn account_nonce(account: AccountId) -> Nonce {
-			System::account_nonce(account)
+			Accounts::account_nonce(&account)
 		}
 	}
 

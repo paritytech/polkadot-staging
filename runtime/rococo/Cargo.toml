@@ -28,6 +28,7 @@ block-builder-api = { package = "sp-block-builder", git = "https://github.com/pa
 inherents = { package = "sp-inherents", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 offchain-primitives = { package = "sp-offchain", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 
+pallet-accounts = { git = "https://github.com/paritytech/substrate", branch = "shawntabrizi-refactor-accounts", default-features = false }
 pallet-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-authorship = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-babe = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }

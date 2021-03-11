@@ -388,6 +388,7 @@ mod tests {
 		type ValidatorId = u64;
 		type ValidatorIdOf = ();
 		type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+		type ReferencedAccount = Accounts;
 		type WeightInfo = ();
 	}
 

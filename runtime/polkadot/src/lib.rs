@@ -57,7 +57,7 @@ use sp_core::OpaqueMetadata;
 use sp_staking::SessionIndex;
 use frame_support::{
 	parameter_types, construct_runtime, RuntimeDebug,
-	traits::{KeyOwnerProofSystem, Randomness, LockIdentifier, Filter},
+	traits::{KeyOwnerProofSystem, Randomness, LockIdentifier, Filter, BasicAccount},
 	weights::Weight,
 };
 use frame_system::{EnsureRoot, EnsureOneOf};
@@ -131,7 +131,8 @@ impl Filter<Call> for BaseFilter {
 			Call::AuthorityDiscovery(_) |
 			Call::Utility(_) | Call::Claims(_) | Call::Vesting(_) |
 			Call::Identity(_) | Call::Proxy(_) | Call::Multisig(_) |
-			Call::Bounties(_) | Call::Tips(_) | Call::ElectionProviderMultiPhase(_)
+			Call::Bounties(_) | Call::Tips(_) | Call::ElectionProviderMultiPhase(_) |
+			Call::Accounts(_)
 			=> true,
 		}
 	}
@@ -166,11 +167,16 @@ impl frame_system::Config for Runtime {
 	type DbWeight = RocksDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
+	type AccountStorage = Accounts;
+	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
+	type SS58Prefix = SS58Prefix;
+}
+
+impl pallet_accounts::Config for Runtime {
+	type Event = Event;
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
-	type SS58Prefix = SS58Prefix;
 }
 
 parameter_types! {
@@ -244,7 +250,8 @@ impl pallet_balances::Config for Runtime {
 	type DustRemoval = ();
 	type Event = Event;
 	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = System;
+	type AccountStore = Accounts;
+	type ReferencedAccount = Accounts;
 	type MaxLocks = MaxLocks;
 	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
 }
@@ -307,6 +314,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+	type ReferencedAccount = Accounts;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 }
 
@@ -413,6 +421,7 @@ impl pallet_staking::Config for Runtime {
 	type OffchainSolutionWeightLimit = OffchainSolutionWeightLimit;
 	type ElectionProvider = ElectionProviderMultiPhase;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
+	type ReferencedAccount = Accounts;
 }
 
 parameter_types! {
@@ -981,6 +990,7 @@ construct_runtime! {
 	{
 		// Basic stuff; balances is uncallable initially.
 		System: frame_system::{Module, Call, Storage, Config, Event<T>} = 0,
+		Accounts: pallet_accounts::{Module, Call, Storage, Event<T>} = 37,
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Storage} = 31,
 		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>} = 1,
 
@@ -1317,7 +1327,7 @@ sp_api::impl_runtime_apis! {
 
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
 		fn account_nonce(account: AccountId) -> Nonce {
-			System::account_nonce(account)
+			Accounts::account_nonce(&account)
 		}
 	}
 

@@ -22,7 +22,7 @@ use super::{validate_candidate_internal, ValidationError, InvalidCandidate, Inte
 use parking_lot::Mutex;
 use log::{debug, trace};
 use futures::executor::ThreadPool;
-use sp_core::traits::SpawnNamed;
+use sp_core::traits::{SpawnNamed, SpawnLimit};
 
 const WORKER_ARG: &'static str = "validation-worker";
 /// CLI Argument to start in validation worker mode.
@@ -53,8 +53,45 @@ impl SpawnNamed for TaskExecutor {
 		self.0.spawn_ok(future);
 	}
 
-	fn spawn(&self, _: &'static str, future: futures::future::BoxFuture<'static, ()>) {
-		self.0.spawn_ok(future);
+	fn spawn(
+		&self,
+		_: &'static str,
+		future: futures::future::BoxFuture<'static, ()>,
+	) -> Option<sp_core::traits::TaskHandle> {
+		use futures::task::SpawnExt;
+		if let Some(handle) = self.0.spawn_with_handle(future).ok() {
+			Some(Box::new(Handle(Some(handle))))
+		} else {
+			None
+		}
+	}
+}
+
+pub struct Handle(Option<futures::future::RemoteHandle<()>>);
+
+impl sp_core::traits::TaskHandleTrait for Handle {
+	fn dismiss(&mut self) {
+		// drop the remote handle to free pool.
+		self.0.take();
+	}
+}
+
+#[cfg(feature = "std")]
+impl Drop for Handle {
+	fn drop(&mut self) {
+		// avoid dropping thread when we don't
+		// use the handle.
+		self.0.take().map(|inner| inner.forget());
+	}
+}
+
+impl SpawnLimit for TaskExecutor {
+	fn try_reserve(&self, number_of_tasks: usize) -> usize {
+		// Unbounded, the task executor is runing a pool internally.
+		number_of_tasks
+	}
+
+	fn release(&self, _number_of_tasks: usize) {
 	}
 }
 

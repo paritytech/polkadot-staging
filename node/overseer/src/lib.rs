@@ -2100,7 +2100,10 @@ fn spawn<S: SpawnNamed, M: Send + 'static>(
 	});
 
 	match task_kind {
-		TaskKind::Regular => spawner.spawn(name, fut),
+		TaskKind::Regular => {
+			// Not using dismiss handle, channel communication instead.
+			let _ = spawner.spawn(name, fut);
+		},
 		TaskKind::Blocking => spawner.spawn_blocking(name, fut),
 	}
 

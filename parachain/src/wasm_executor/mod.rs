@@ -24,7 +24,7 @@ use std::{any::{TypeId, Any}, path::{Path, PathBuf}};
 use crate::primitives::{ValidationParams, ValidationResult};
 use parity_scale_codec::{Decode, Encode};
 use sp_core::{storage::{ChildInfo, TrackedStorageKey}, traits::{CallInWasm, SpawnNamed}};
-use sp_externalities::Extensions;
+use sp_externalities::{Extensions, AsyncExternalities, TaskId, WorkerResult};
 use sp_wasm_interface::HostFunctions as _;
 
 #[cfg(not(any(target_os = "android", target_os = "unknown")))]
@@ -372,6 +372,21 @@ impl sp_externalities::Externalities for ValidationExternalities {
 
 	fn set_offchain_storage(&mut self, _: &[u8], _: std::option::Option<&[u8]>) {
 		panic!("set_offchain_storage: unsupported feature for parachain validation")
+	}
+
+	fn get_worker_externalities(
+		&mut self,
+		_worker_id: TaskId,
+	) -> Box<dyn AsyncExternalities> {
+		panic!("get_worker_externalities: unsupported feature for parachain validation")
+	}
+
+	fn resolve_worker_result(&mut self, _result: WorkerResult) -> Option<Vec<u8>> {
+		panic!("resolve_worker_result: unsupported feature for parachain validation")
+	}
+
+	fn dismiss_worker(&mut self, _id: TaskId) {
+		panic!("dismiss_worker: unsupported feature for parachain validation")
 	}
 }
 

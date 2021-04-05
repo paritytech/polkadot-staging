@@ -621,6 +621,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = xcm_sender::RelayChainXcmSender<Runtime>;
 	type AssetTransactor = LocalAssetTransactor;
+	type HrmpExecutor = Hrmp;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
 	type IsTeleporter = ();

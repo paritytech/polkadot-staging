@@ -31,7 +31,7 @@ pub use junction::{Junction, NetworkId};
 pub use multi_asset::{MultiAsset, AssetInstance};
 pub use multi_location::MultiLocation;
 pub use order::Order;
-pub use traits::{Error, Result, SendXcm, ExecuteXcm};
+pub use traits::{Error, Result, SendXcm, ExecuteXcm, ExecuteHrmp};
 
 // TODO: Efficient encodings for Vec<MultiAsset>, Vec<Order>, using initial byte values 128+ to encode the number of
 //   items in the vector.
@@ -200,6 +200,53 @@ pub enum Xcm {
 	/// Errors:
 	HrmpChannelClosing {
 		#[codec(compact)] initiator: u32,
+		#[codec(compact)] sender: u32,
+		#[codec(compact)] recipient: u32,
+	},
+
+	/// A message to propose opening a channel on the relay-chain between the
+	/// sender para to the recipient para.
+	///
+	/// - `recipient`: The recipient in the to-be opened channel.
+	/// - `max_message_size`: The maximum size of a message proposed by the sender.
+	/// - `max_capacity`: The maximum number of messages that can be queued in the channel.
+	///
+	/// Safety: The message should originate directly from the sender para.
+	///
+	/// Kind: *Instruction*.
+	///
+	/// Errors:
+	HrmpInitOpenChannel {
+		#[codec(compact)] recipient: u32,
+		#[codec(compact)] max_message_size: u32,
+		#[codec(compact)] max_capacity: u32,
+	},
+
+	/// A message to accept opening a channel on the relay-chain.
+	///
+	/// - `sender`: The sender in the to-be opened channel.
+	///
+	/// Safety: The message should originate directly from the recipient para.
+	///
+	/// Kind: *Instruction*.
+	///
+	/// Errors:
+	HrmpAcceptOpenChannel {
+		#[codec(compact)] sender: u32,
+	},
+
+	/// A message to close a channel on the relay-chain.
+	///
+	/// - `sender`: The sender in the to-be closed channel.
+	/// - `recipient`: The recipient in the to-be closed channel.
+	///
+	/// Safety: The message should originate directly from the sender or
+	/// recipient para (either member of the channel).
+	///
+	/// Kind: *Instruction*.
+	///
+	/// Errors:
+	HrmpCloseChannel {
 		#[codec(compact)] sender: u32,
 		#[codec(compact)] recipient: u32,
 	},

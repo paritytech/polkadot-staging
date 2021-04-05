@@ -67,3 +67,21 @@ impl SendXcm for () {
 		Err(Error::Unimplemented)
 	}
 }
+
+pub trait ExecuteHrmp {
+	fn hrmp_init_open_channel(sender: u32, recipient: u32, max_message_size: u32, max_capacity: u32) -> Result;
+	fn hrmp_accept_open_channel(recipient: u32, sender: u32) -> Result;
+	fn hrmp_close_channel(initiator: u32, sender: u32, recipient: u32) -> Result;
+}
+
+impl ExecuteHrmp for () {
+	fn hrmp_init_open_channel(_sender: u32, _recipient: u32, _max_message_size: u32, _max_capacity: u32) -> Result {
+		Err(().into())
+	}
+	fn hrmp_accept_open_channel(_recipient: u32, _sender: u32) -> Result {
+		Err(().into())
+	}
+	fn hrmp_close_channel(_initiator: u32, _sender: u32, _recipient: u32) -> Result {
+		Err(().into())
+	}
+}

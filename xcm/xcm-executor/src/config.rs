@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use xcm::v0::SendXcm;
+use xcm::v0::{SendXcm, ExecuteHrmp};
 use frame_support::dispatch::{Dispatchable, Parameter};
 use crate::traits::{TransactAsset, ConvertOrigin, FilterAssetLocation, InvertLocation};
 
@@ -28,6 +28,9 @@ pub trait Config {
 
 	/// How to withdraw and deposit an asset.
 	type AssetTransactor: TransactAsset;
+
+	/// How to execute HRMP-related actions
+	type HrmpExecutor: ExecuteHrmp; 
 
 	/// How to get a call origin from a `OriginKind` value.
 	type OriginConverter: ConvertOrigin<<Self::Call as Dispatchable>::Origin>;

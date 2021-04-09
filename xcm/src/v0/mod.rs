@@ -27,6 +27,8 @@ mod multi_asset;
 mod multi_location;
 mod order;
 mod traits;
+pub mod multiasset;	// the new multiasset.
+
 pub use junction::{Junction, NetworkId};
 pub use multi_asset::{MultiAsset, AssetInstance};
 pub use multi_location::MultiLocation;

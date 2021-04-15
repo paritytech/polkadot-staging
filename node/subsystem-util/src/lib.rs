@@ -191,11 +191,11 @@ pub async fn signing_key(validators: &[ValidatorId], keystore: &SyncCryptoStoreP
 pub async fn signing_key_and_index(validators: &[ValidatorId], keystore: &SyncCryptoStorePtr)
 	-> Option<(ValidatorId, ValidatorIndex)>
 {
-	for (i, v) in validators.iter().enumerate() {
-		if CryptoStore::has_keys(&**keystore, &[(v.to_raw_vec(), ValidatorId::ID)]).await {
-			return Some((v.clone(), ValidatorIndex(i as _)));
-		}
-	}
+	let keys: Vec<_> = validators.iter().map(|v| (v.to_raw_vec(), ValidatorId::ID)).collect();
+	CryptoStore::has_keys(&**keystore, &keys).await.into_found().next().and_then(|i| {
+		return Some((validators[i].clone(), ValidatorIndex(i as _)));
+	});
+
 	None
 }
 

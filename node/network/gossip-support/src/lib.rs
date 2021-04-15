@@ -113,13 +113,12 @@ async fn ensure_i_am_an_authority(
 	keystore: &SyncCryptoStorePtr,
 	authorities: &[AuthorityDiscoveryId],
 ) -> Result<(), util::Error> {
-	for v in authorities {
-		if CryptoStore::has_keys(&**keystore, &[(v.to_raw_vec(), AuthorityDiscoveryId::ID)])
-			.await
-		{
-			return Ok(());
-		}
+	let keys: Vec<_> = authorities.iter().map(|v| (v.to_raw_vec(), AuthorityDiscoveryId::ID)).collect();
+	if CryptoStore::has_keys(&**keystore, &keys).await.found_any()
+	{
+		return Ok(());
 	}
+
 	Err(util::Error::NotAValidator)
 }
 

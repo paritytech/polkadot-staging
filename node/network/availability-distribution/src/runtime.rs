@@ -185,13 +185,11 @@ impl Runtime {
 	///
 	/// Returns: None if we are not a validator.
 	async fn get_our_index(&self, validators: &[ValidatorId]) -> Option<ValidatorIndex> {
-		for (i, v) in validators.iter().enumerate() {
-			if CryptoStore::has_keys(&*self.keystore, &[(v.to_raw_vec(), ValidatorId::ID)])
-				.await
-			{
-				return Some(ValidatorIndex(i as u32));
-			}
-		}
+		let keys: Vec<_> = validators.iter().map(|v| (v.to_raw_vec(), ValidatorId::ID)).collect();
+		CryptoStore::has_keys(&*self.keystore, &keys).await.into_found().next().and_then(|i| {
+			return Some(ValidatorIndex(i as u32));
+		});
+
 		None
 	}
 }

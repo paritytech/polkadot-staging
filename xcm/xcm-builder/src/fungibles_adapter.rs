@@ -16,7 +16,7 @@
 
 use sp_std::{prelude::*, result, marker::PhantomData, borrow::Borrow};
 use xcm::v0::{Error as XcmError, Result, MultiAsset, MultiLocation, Junction};
-use frame_support::traits::{Get, tokens::fungibles, Contains};
+use frame_support::traits::{Get, tokens::{fungibles, WhenDust}, Contains};
 use xcm_executor::traits::{TransactAsset, Convert};
 
 /// Asset transaction errors.
@@ -154,7 +154,7 @@ impl<
 			.map_err(|()| Error::AccountIdConversionFailed)?;
 		let dest = AccountIdConverter::convert_ref(to)
 			.map_err(|()| Error::AccountIdConversionFailed)?;
-		Assets::transfer(asset_id, &source, &dest, amount, true)
+		Assets::transfer(asset_id, &source, &dest, amount, WhenDust::KeepAlive)
 			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 		Ok(what.clone().into())
 	}
@@ -178,7 +178,7 @@ impl<
 			// This is an asset whose teleports we track.
 			let checking_account = CheckingAccount::get();
 			Assets::can_withdraw(asset_id, &checking_account, amount)
-				.into_result()
+				.into_result(false)
 				.map_err(|_| XcmError::NotWithdrawable)?;
 		}
 		Ok(())

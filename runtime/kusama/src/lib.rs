@@ -1478,6 +1478,72 @@ construct_runtime! {
 	}
 }
 
+const COUNCIL_OLD_PREFIX: &str = "Instance1Collective";
+pub struct CouncilStoragePrefixMigration;
+impl frame_support::traits::OnRuntimeUpgrade for CouncilStoragePrefixMigration {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		use frame_support::traits::PalletInfo;
+		let name = <Runtime as frame_system::Config>::PalletInfo::name::<Council>()
+			.expect("council is part of pallets in construct_runtime, so it has a name; qed");
+		pallet_collective::migrations::v3_1::migrate::<Runtime, Council, _>(
+			COUNCIL_OLD_PREFIX,
+			name,
+		)
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade() -> Result<(), &'static str> {
+		use frame_support::traits::PalletInfo;
+		let name = <Runtime as frame_system::Config>::PalletInfo::name::<Council>()
+			.expect("council is part of pallets in construct_runtime, so it has a name; qed");
+		pallet_collective::migrations::v3_1::pre_migration::<Runtime, Council, _>(
+			COUNCIL_OLD_PREFIX,
+			name,
+		);
+		Ok(())
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade() -> Result<(), &'static str> {
+		pallet_collective::migrations::v3_1::post_migration::<Council>(COUNCIL_OLD_PREFIX);
+		Ok(())
+	}
+}
+
+const TECHNICAL_COMMITTEE_OLD_PREFIX: &str = "Instance2Collective";
+pub struct TechnicalCommitteeStoragePrefixMigration;
+impl frame_support::traits::OnRuntimeUpgrade for TechnicalCommitteeStoragePrefixMigration {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		use frame_support::traits::PalletInfo;
+		let name = <Runtime as frame_system::Config>::PalletInfo::name::<TechnicalCommittee>()
+			.expect("technical committee is part of pallets in construct_runtime, so it has a name; qed");
+		pallet_collective::migrations::v3_1::migrate::<Runtime, TechnicalCommittee, _>(
+			TECHNICAL_COMMITTEE_OLD_PREFIX,
+			name,
+		)
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade() -> Result<(), &'static str> {
+		use frame_support::traits::PalletInfo;
+		let name = <Runtime as frame_system::Config>::PalletInfo::name::<TechnicalCommittee>()
+			.expect("technical committee is part of pallets in construct_runtime, so it has a name; qed");
+		pallet_collective::migrations::v3_1::pre_migration::<Runtime, TechnicalCommittee, _>(
+			TECHNICAL_COMMITTEE_OLD_PREFIX,
+			name,
+		);
+		Ok(())
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade() -> Result<(), &'static str> {
+		pallet_collective::migrations::v3_1::post_migration::<TechnicalCommittee>(
+			TECHNICAL_COMMITTEE_OLD_PREFIX,
+		);
+		Ok(())
+	}
+}
+
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 /// Block header type as expected by this runtime.
@@ -1507,6 +1573,7 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPallets,
+	(CouncilStoragePrefixMigration, TechnicalCommitteeStoragePrefixMigration),
 >;
 /// The payload being signed in the transactions.
 pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;

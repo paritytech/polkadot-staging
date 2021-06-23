@@ -53,9 +53,9 @@ use frame_support::{
 	ensure, Identity, PalletId,
 	storage::{child, ChildTriePrefixIterator},
 	traits::{
-		Currency, ReservableCurrency, Get, ExistenceRequirement::AllowDeath
+		Currency, ReservableCurrency, Get, ExistenceRequirement::{AllowDeath, KeepAlive},
 	},
-	pallet_prelude::Weight,
+	pallet_prelude::{Weight, DispatchResult},
 };
 use sp_runtime::{
 	RuntimeDebug, MultiSignature, MultiSigner,
@@ -219,6 +219,16 @@ pub mod pallet {
 	#[pallet::getter(fn next_trie_index)]
 	pub(super) type NextTrieIndex<T> = StorageValue<_, u32, ValueQuery>;
 
+	/// Available Crowdloan credits for users.
+	#[pallet::storage]
+	#[pallet::getter(fn credits)]
+	pub(super) type Credits<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat, T::AccountId,
+		BalanceOf<T>,
+		ValueQuery,
+	>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
@@ -289,7 +299,9 @@ pub mod pallet {
 		/// The provided memo is too large.
 		MemoTooLarge,
 		/// The fund is already in NewRaise
-		AlreadyInNewRaise
+		AlreadyInNewRaise,
+		/// This user does not have enough credits to make this contribution.
+		NotEnoughCredit,
 	}
 
 	#[pallet::hooks]
@@ -396,69 +408,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			ensure!(value >= T::MinContribution::get(), Error::<T>::ContributionTooSmall);
-			let mut fund = Self::funds(index).ok_or(Error::<T>::InvalidParaId)?;
-			fund.raised  = fund.raised.checked_add(&value).ok_or(Error::<T>::Overflow)?;
-			ensure!(fund.raised <= fund.cap, Error::<T>::CapExceeded);
-
-			// Make sure crowdloan has not ended
-			let now = <frame_system::Pallet<T>>::block_number();
-			ensure!(now < fund.end, Error::<T>::ContributionPeriodOver);
-
-			// Make sure crowdloan is in a valid lease period
-			let current_lease_period = T::Auctioneer::lease_period_index();
-			ensure!(current_lease_period <= fund.first_period, Error::<T>::ContributionPeriodOver);
-
-			// Make sure crowdloan has not already won.
-			let fund_account = Self::fund_account_id(index);
-			ensure!(!T::Auctioneer::has_won_an_auction(index, &fund_account), Error::<T>::BidOrLeaseActive);
-
-			let (old_balance, memo) = Self::contribution_get(fund.trie_index, &who);
-
-			if let Some(ref verifier) = fund.verifier {
-				let signature = signature.ok_or(Error::<T>::InvalidSignature)?;
-				let payload = (index, &who, old_balance, value);
-				let valid = payload.using_encoded(|encoded| signature.verify(encoded, &verifier.clone().into_account()));
-				ensure!(valid, Error::<T>::InvalidSignature);
-			}
-
-			CurrencyOf::<T>::transfer(&who, &fund_account, value, AllowDeath)?;
-
-			let balance = old_balance.saturating_add(value);
-			Self::contribution_put(fund.trie_index, &who, &balance, &memo);
-
-			if T::Auctioneer::is_ending(now).is_some() {
-				match fund.last_contribution {
-					// In ending period; must ensure that we are in NewRaise.
-					LastContribution::Ending(n) if n == now => {
-						// do nothing - already in NewRaise
-					}
-					_ => {
-						NewRaise::<T>::append(index);
-						fund.last_contribution = LastContribution::Ending(now);
-					}
-				}
-			} else {
-				let endings_count = Self::endings_count();
-				match fund.last_contribution {
-					LastContribution::PreEnding(a) if a == endings_count => {
-						// Not in ending period and no auctions have ended ending since our
-						// previous bid which was also not in an ending period.
-						// `NewRaise` will contain our ID still: Do nothing.
-					}
-					_ => {
-						// Not in ending period; but an auction has been ending since our previous
-						// bid, or we never had one to begin with. Add bid.
-						NewRaise::<T>::append(index);
-						fund.last_contribution = LastContribution::PreEnding(endings_count);
-					}
-				}
-			}
-
-			Funds::<T>::insert(index, &fund);
-
-			Self::deposit_event(Event::<T>::Contributed(who, index, value));
-			Ok(())
+			Self::do_contribute(who, index, value, signature, false)
 		}
 
 		/// Withdraw full balance of a specific contributor.
@@ -643,6 +593,34 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::AddedToNewRaise(index));
 			Ok(())
 		}
+
+		/// Transfers some `amount` of balance to the Crowdloan Credit account, and assigns
+		/// that credit to `who`. This credit can be used to directly participate in a crowdloan.
+		#[pallet::weight(0)]
+		pub fn add_credit(
+			origin: OriginFor<T>,
+			who: T::AccountId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			let creditor = ensure_signed(origin)?;
+			let credit_account = Self::credit_account_id();
+			// Try to transfer balance from the creditor to our credit account.
+			CurrencyOf::<T>::transfer(&creditor, &credit_account, amount, KeepAlive)?;
+			// Transfer succeeded, so let's assign that new balance to the `who` account.
+			Credits::<T>::mutate(who, |balance| { balance.saturating_accrue(amount) });
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn contribute_credit(
+			origin: OriginFor<T>,
+			#[pallet::compact] index: ParaId,
+			#[pallet::compact] value: BalanceOf<T>,
+			signature: Option<MultiSignature>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			Self::do_contribute(who, index, value, signature, true)
+		}
 	}
 }
 
@@ -653,6 +631,10 @@ impl<T: Config> Pallet<T> {
 	/// value and only call this once.
 	pub fn fund_account_id(index: ParaId) -> T::AccountId {
 		T::PalletId::get().into_sub_account(index)
+	}
+
+	pub fn credit_account_id() -> T::AccountId {
+		T::PalletId::get().into_sub_account("credit")
 	}
 
 	pub fn id_from_index(index: TrieIndex) -> child::ChildInfo {
@@ -706,6 +688,89 @@ impl<T: Config> Pallet<T> {
 			ensure!(CurrencyOf::<T>::free_balance(&fund_account) >= fund.raised, Error::<T>::BidOrLeaseActive);
 
 			Ok(())
+	}
+
+	/// Logic for contributing to a crowdloan. Supports direct and credit based contributions.
+	fn do_contribute(
+		who: T::AccountId,
+		index: ParaId,
+		value: BalanceOf<T>,
+		signature: Option<MultiSignature>,
+		use_credit: bool,
+	) -> DispatchResult {
+		ensure!(value >= T::MinContribution::get(), Error::<T>::ContributionTooSmall);
+		let mut fund = Self::funds(index).ok_or(Error::<T>::InvalidParaId)?;
+		fund.raised  = fund.raised.checked_add(&value).ok_or(Error::<T>::Overflow)?;
+		ensure!(fund.raised <= fund.cap, Error::<T>::CapExceeded);
+
+		// Make sure crowdloan has not ended
+		let now = <frame_system::Pallet<T>>::block_number();
+		ensure!(now < fund.end, Error::<T>::ContributionPeriodOver);
+
+		// Make sure crowdloan is in a valid lease period
+		let current_lease_period = T::Auctioneer::lease_period_index();
+		ensure!(current_lease_period <= fund.first_period, Error::<T>::ContributionPeriodOver);
+
+		// Make sure crowdloan has not already won.
+		let fund_account = Self::fund_account_id(index);
+		ensure!(!T::Auctioneer::has_won_an_auction(index, &fund_account), Error::<T>::BidOrLeaseActive);
+
+		let (old_balance, memo) = Self::contribution_get(fund.trie_index, &who);
+
+		if let Some(ref verifier) = fund.verifier {
+			let signature = signature.ok_or(Error::<T>::InvalidSignature)?;
+			let payload = (index, &who, old_balance, value);
+			let valid = payload.using_encoded(|encoded| signature.verify(encoded, &verifier.clone().into_account()));
+			ensure!(valid, Error::<T>::InvalidSignature);
+		}
+
+		if use_credit {
+			Credits::<T>::try_mutate(&who, |credit| -> DispatchResult {
+				ensure!(*credit <= value, Error::<T>::NotEnoughCredit);
+				let credit_account = Self::credit_account_id();
+				CurrencyOf::<T>::transfer(&credit_account, &fund_account, value, AllowDeath)?;
+				credit.saturating_reduce(value);
+				Ok(())
+			})?;
+		} else {
+			CurrencyOf::<T>::transfer(&who, &fund_account, value, AllowDeath)?;
+		}
+
+		let balance = old_balance.saturating_add(value);
+		Self::contribution_put(fund.trie_index, &who, &balance, &memo);
+
+		if T::Auctioneer::is_ending(now).is_some() {
+			match fund.last_contribution {
+				// In ending period; must ensure that we are in NewRaise.
+				LastContribution::Ending(n) if n == now => {
+					// do nothing - already in NewRaise
+				}
+				_ => {
+					NewRaise::<T>::append(index);
+					fund.last_contribution = LastContribution::Ending(now);
+				}
+			}
+		} else {
+			let endings_count = Self::endings_count();
+			match fund.last_contribution {
+				LastContribution::PreEnding(a) if a == endings_count => {
+					// Not in ending period and no auctions have ended ending since our
+					// previous bid which was also not in an ending period.
+					// `NewRaise` will contain our ID still: Do nothing.
+				}
+				_ => {
+					// Not in ending period; but an auction has been ending since our previous
+					// bid, or we never had one to begin with. Add bid.
+					NewRaise::<T>::append(index);
+					fund.last_contribution = LastContribution::PreEnding(endings_count);
+				}
+			}
+		}
+
+		Funds::<T>::insert(index, &fund);
+
+		Self::deposit_event(Event::<T>::Contributed(who, index, value));
+		Ok(())
 	}
 }
 

@@ -34,7 +34,9 @@ use polkadot_node_subsystem::{
 	ActiveLeavesUpdate, FromOverseer, OverseerSignal, SpawnedSubsystem, Subsystem,
 	SubsystemContext, SubsystemError,
 };
-use polkadot_primitives::v1::{BlockNumber, CandidateHash, CandidateReceipt, Hash, SessionIndex};
+use polkadot_primitives::v1::{
+	BlockNumber, CandidateHash, CandidateReceipt, Hash, SessionIndex, ValidationCodeAndHash
+};
 
 #[cfg(test)]
 mod tests;
@@ -240,6 +242,10 @@ async fn participate(
 			return Err(ParticipationError::MissingValidationCode(candidate_hash).into());
 		}
 	};
+	let validation_code_and_hash = ValidationCodeAndHash::new(
+		validation_code,
+		candidate_receipt.descriptor.validation_code_hash,
+	);
 
 	// we dispatch a request to store the available data for the candidate. we
 	// want to maximize data availability for other potential checkers involved
@@ -272,7 +278,7 @@ async fn participate(
 	ctx.send_message(
 		CandidateValidationMessage::ValidateFromExhaustive(
 			available_data.validation_data,
-			validation_code,
+			validation_code_and_hash,
 			candidate_receipt.descriptor.clone(),
 			available_data.pov,
 			validation_tx,

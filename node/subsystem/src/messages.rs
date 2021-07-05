@@ -45,8 +45,8 @@ use polkadot_primitives::v1::{
 	CoreState, GroupIndex, GroupRotationInfo, Hash, Header as BlockHeader, Id as ParaId,
 	InboundDownwardMessage, InboundHrmpMessage, MultiDisputeStatementSet, OccupiedCoreAssumption,
 	PersistedValidationData, SessionIndex, SessionInfo, SignedAvailabilityBitfield,
-	SignedAvailabilityBitfields, ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex,
-	ValidatorSignature,
+	SignedAvailabilityBitfields, ValidationCode, ValidationCodeAndHash, ValidationCodeHash,
+	ValidatorId, ValidatorIndex, ValidatorSignature,
 };
 use polkadot_procmacro_subsystem_dispatch_gen::subsystem_dispatch_gen;
 use polkadot_statement_table::v1::Misbehavior;
@@ -125,7 +125,7 @@ pub enum CandidateValidationMessage {
 	/// performed by the relay-chain.
 	ValidateFromExhaustive(
 		PersistedValidationData,
-		ValidationCode,
+		ValidationCodeAndHash,
 		CandidateDescriptor,
 		Arc<PoV>,
 		oneshot::Sender<Result<ValidationResult, ValidationFailed>>,
@@ -562,13 +562,21 @@ pub enum RuntimeApiRequest {
 	),
 	/// Get the session index that a child of the block will have.
 	SessionIndexForChild(RuntimeApiSender<SessionIndex>),
-	/// Get the validation code for a para, taking the given `OccupiedCoreAssumption`, which
-	/// will inform on how the validation data should be computed if the para currently
-	/// occupies a core.
+	/// Get the validation code and its hash for a para, taking the given
+	/// `OccupiedCoreAssumption`, which will inform on how the validation data should be computed
+	/// if the para currently occupies a core.
 	ValidationCode(
 		ParaId,
 		OccupiedCoreAssumption,
-		RuntimeApiSender<Option<ValidationCode>>,
+		RuntimeApiSender<Option<ValidationCodeAndHash>>,
+	),
+	/// Get the validation code hash for a para, taking the given `OccupiedCoreAssumption`, which
+	/// will inform on how the validation data should be computed if the para currently
+	/// occupies a core.
+	ValidationCodeHash(
+		ParaId,
+		OccupiedCoreAssumption,
+		RuntimeApiSender<Option<ValidationCodeHash>>,
 	),
 	/// Get validation code by its hash, either past, current or future code can be returned, as long as state is still
 	/// available.

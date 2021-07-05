@@ -31,9 +31,11 @@ use polkadot_subsystem::{
 	errors::RuntimeApiError,
 };
 use polkadot_node_subsystem_util::metrics::{self, prometheus};
-use polkadot_primitives::v1::{Block, BlockId, Hash, ParachainHost};
+use polkadot_primitives::v1::{
+	Block, BlockId, Hash, ParachainHost, ValidationCodeAndHash,
+};
 
-use sp_api::ProvideRuntimeApi;
+use sp_api::{ProvideRuntimeApi, ApiExt};
 use sp_authority_discovery::AuthorityDiscoveryApi;
 use sp_core::traits::SpawnNamed;
 use sp_consensus_babe::BabeApi;
@@ -122,6 +124,8 @@ impl<Client> RuntimeApiSubsystem<Client> where
 				self.requests_cache.cache_session_index_for_child(relay_parent, session_index),
 			ValidationCode(relay_parent, para_id, assumption, code) =>
 				self.requests_cache.cache_validation_code((relay_parent, para_id, assumption), code),
+			ValidationCodeHash(relay_parent, para_id, assumption, code_hash) =>
+				self.requests_cache.cache_validation_code_hash((relay_parent, para_id, assumption), code_hash),
 			ValidationCodeByHash(relay_parent, validation_code_hash, code) =>
 				self.requests_cache.cache_validation_code_by_hash((relay_parent, validation_code_hash), code),
 			CandidatePendingAvailability(relay_parent, para_id, candidate) =>
@@ -186,6 +190,9 @@ impl<Client> RuntimeApiSubsystem<Client> where
 			Request::ValidationCode(para, assumption, sender) =>
 				query!(validation_code(para, assumption), sender)
 					.map(|sender| Request::ValidationCode(para, assumption, sender)),
+			Request::ValidationCodeHash(para, assumption, sender) =>
+				query!(validation_code_hash(para, assumption), sender)
+					.map(|sender| Request::ValidationCodeHash(para, assumption, sender)),
 			Request::ValidationCodeByHash(validation_code_hash, sender) =>
 				query!(validation_code_by_hash(validation_code_hash), sender)
 					.map(|sender| Request::ValidationCodeByHash(validation_code_hash, sender)),
@@ -324,8 +331,65 @@ where
 		Request::CheckValidationOutputs(para, commitments, sender) =>
 			query!(CheckValidationOutputs, check_validation_outputs(para, commitments), sender),
 		Request::SessionIndexForChild(sender) => query!(SessionIndexForChild, session_index_for_child(), sender),
-		Request::ValidationCode(para, assumption, sender) =>
-			query!(ValidationCode, validation_code(para, assumption), sender),
+		Request::ValidationCode(para, assumption, sender) => {
+			let api = client.runtime_api();
+			let block_id = BlockId::Hash(relay_parent);
+
+			let has_parachain_host_version_2 = api
+				.has_api_with::<dyn ParachainHost<Block>, _>(&block_id, |version| version >= 2);
+
+			let res = match has_parachain_host_version_2 {
+				Ok(true) => {
+					let res = api.validation_code(&block_id, para, assumption)
+						.map_err(|e| RuntimeApiError::from(format!("{:?}", e)));
+					metrics.on_request(res.is_ok());
+					res
+				},
+				Ok(false) => {
+					#[allow(deprecated)]
+					let res = api.validation_code_before_version_2(&block_id, para, assumption)
+						.map_err(|e| RuntimeApiError::from(format!("{:?}", e)));
+					metrics.on_request(res.is_ok());
+
+					res.map(|r| r.map(ValidationCodeAndHash::compute_from_code))
+				},
+				Err(e) => Err(RuntimeApiError::from(format!("{:?}", e))),
+			};
+
+			let _ = sender.send(res.clone());
+
+			res.ok().map(|res| RequestResult::ValidationCode(relay_parent, para, assumption, res))
+		},
+		Request::ValidationCodeHash(para, assumption, sender) => {
+			let api = client.runtime_api();
+			let block_id = BlockId::Hash(relay_parent);
+
+			let has_parachain_host_version_2 = api
+				.has_api_with::<dyn ParachainHost<Block>, _>(&block_id, |version| version >= 2);
+
+			let res = match has_parachain_host_version_2 {
+				Ok(true) => {
+					let res = api.validation_code_hash(&block_id, para, assumption)
+						.map_err(|e| RuntimeApiError::from(format!("{:?}", e)));
+					metrics.on_request(res.is_ok());
+					res
+				},
+				Ok(false) => {
+					#[allow(deprecated)]
+					let res = api.validation_code_before_version_2(&block_id, para, assumption)
+						.map_err(|e| RuntimeApiError::from(format!("{:?}", e)));
+					metrics.on_request(res.is_ok());
+
+					res.map(|r| r.map(|c| c.hash().clone()))
+				},
+				Err(e) => Err(RuntimeApiError::from(format!("{:?}", e))),
+			};
+
+			let _ = sender.send(res.clone());
+
+			res.ok()
+				.map(|res| RequestResult::ValidationCodeHash(relay_parent, para, assumption, res))
+		},
 		Request::ValidationCodeByHash(validation_code_hash, sender) =>
 			query!(ValidationCodeByHash, validation_code_by_hash(validation_code_hash), sender),
 		Request::CandidatePendingAvailability(para, sender) =>

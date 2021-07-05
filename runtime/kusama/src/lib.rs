@@ -28,8 +28,8 @@ use parity_scale_codec::{Encode, Decode};
 use primitives::v1::{
 	AccountId, AccountIndex, Balance, BlockNumber, CandidateEvent, CommittedCandidateReceipt,
 	CoreState, GroupRotationInfo, Hash, Id as ParaId, Moment, Nonce, OccupiedCoreAssumption,
-	PersistedValidationData, Signature, ValidationCode, ValidationCodeHash, ValidatorId,
-	ValidatorIndex, InboundDownwardMessage, InboundHrmpMessage, SessionInfo,
+	PersistedValidationData, Signature, ValidationCode, ValidationCodeAndHash, ValidationCodeHash,
+	ValidatorId, ValidatorIndex, InboundDownwardMessage, InboundHrmpMessage, SessionInfo,
 };
 use runtime_common::{
 	claims, paras_registrar, xcm_sender, slots, auctions, crowdloan,
@@ -1637,8 +1637,13 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn validation_code(para_id: ParaId, assumption: OccupiedCoreAssumption)
-			-> Option<ValidationCode> {
+			-> Option<ValidationCodeAndHash> {
 			parachains_runtime_api_impl::validation_code::<Runtime>(para_id, assumption)
+		}
+
+		fn validation_code_hash(para_id: ParaId, assumption: OccupiedCoreAssumption)
+			-> Option<ValidationCodeHash> {
+			parachains_runtime_api_impl::validation_code_hash::<Runtime>(para_id, assumption)
 		}
 
 		fn candidate_pending_availability(para_id: ParaId) -> Option<CommittedCandidateReceipt<Hash>> {

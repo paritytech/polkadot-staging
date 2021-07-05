@@ -35,7 +35,7 @@ use polkadot_node_subsystem::{
 };
 use polkadot_node_subsystem_util::{
 	request_availability_cores, request_persisted_validation_data,
-	request_validators, request_validation_code,
+	request_validators, request_validation_code_hash,
 	metrics::{self, prometheus},
 };
 use polkadot_primitives::v1::{
@@ -274,7 +274,7 @@ async fn handle_new_activations<Context: SubsystemContext>(
 				}
 			};
 
-			let validation_code = match request_validation_code(
+			let validation_code_hash = match request_validation_code_hash(
 				relay_parent,
 				scheduled_core.para_id,
 				assumption,
@@ -291,12 +291,11 @@ async fn handle_new_activations<Context: SubsystemContext>(
 						relay_parent = ?relay_parent,
 						our_para = %config.para_id,
 						their_para = %scheduled_core.para_id,
-						"validation code is not available",
+						"validation code hash is not available",
 					);
 					continue
 				}
 			};
-			let validation_code_hash = validation_code.hash();
 
 			let task_config = config.clone();
 			let mut task_sender = sender.clone();
@@ -388,7 +387,7 @@ async fn handle_new_activations<Context: SubsystemContext>(
 						pov_hash,
 						erasure_root,
 						para_head: commitments.head_data.hash(),
-						validation_code_hash: validation_code_hash,
+						validation_code_hash,
 					},
 				};
 

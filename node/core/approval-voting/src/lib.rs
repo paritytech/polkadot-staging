@@ -41,7 +41,7 @@ use polkadot_primitives::v1::{
 	ValidatorIndex, Hash, SessionIndex, SessionInfo, CandidateHash,
 	CandidateReceipt, BlockNumber,
 	ValidatorPair, ValidatorSignature, ValidatorId,
-	CandidateIndex, GroupIndex, ApprovalVote,
+	CandidateIndex, GroupIndex, ApprovalVote, ValidationCodeAndHash,
 };
 use polkadot_node_primitives::ValidationResult;
 use polkadot_node_primitives::approval::{
@@ -2192,13 +2192,18 @@ async fn launch_approval(
 			}
 		};
 
+		let validation_code_and_hash = ValidationCodeAndHash::new(
+			validation_code,
+			candidate.descriptor.validation_code_hash,
+		);
+
 		let (val_tx, val_rx) = oneshot::channel();
 
 		let para_id = candidate.descriptor.para_id;
 
 		sender.send_message(CandidateValidationMessage::ValidateFromExhaustive(
 			available_data.validation_data,
-			validation_code,
+			validation_code_and_hash,
 			candidate.descriptor,
 			available_data.pov,
 			val_tx,

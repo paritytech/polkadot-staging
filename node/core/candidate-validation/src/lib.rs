@@ -37,7 +37,7 @@ use polkadot_node_primitives::{
 	VALIDATION_CODE_BOMB_LIMIT, POV_BOMB_LIMIT, ValidationResult, InvalidCandidate, PoV, BlockData,
 };
 use polkadot_primitives::v1::{
-	ValidationCode, CandidateDescriptor, PersistedValidationData,
+	ValidationCodeHash, ValidationCodeAndHash, CandidateDescriptor, PersistedValidationData,
 	OccupiedCoreAssumption, Hash, CandidateCommitments,
 };
 use polkadot_parachain::primitives::{ValidationParams, ValidationResult as WasmValidationResult};
@@ -192,7 +192,7 @@ async fn runtime_api_request<T>(
 
 #[derive(Debug)]
 enum AssumptionCheckOutcome {
-	Matches(PersistedValidationData, ValidationCode),
+	Matches(PersistedValidationData, ValidationCodeAndHash),
 	DoesNotMatch,
 	BadRequest,
 }
@@ -339,7 +339,7 @@ async fn spawn_validate_from_chain_state(
 async fn validate_candidate_exhaustive(
 	mut validation_backend: impl ValidationBackend,
 	persisted_validation_data: PersistedValidationData,
-	validation_code: ValidationCode,
+	validation_code: ValidationCodeAndHash,
 	descriptor: CandidateDescriptor,
 	pov: Arc<PoV>,
 	metrics: &Metrics,
@@ -350,13 +350,13 @@ async fn validate_candidate_exhaustive(
 		&descriptor,
 		persisted_validation_data.max_pov_size,
 		&*pov,
-		&validation_code,
+		validation_code.hash(),
 	) {
 		return Ok(Ok(ValidationResult::Invalid(e)));
 	}
 
 	let raw_validation_code = match sp_maybe_compressed_blob::decompress(
-		&validation_code.0,
+		&validation_code.code().0,
 		VALIDATION_CODE_BOMB_LIMIT,
 	) {
 		Ok(code) => code,
@@ -473,10 +473,9 @@ fn perform_basic_checks(
 	candidate: &CandidateDescriptor,
 	max_pov_size: u32,
 	pov: &PoV,
-	validation_code: &ValidationCode,
+	validation_code_hash: &ValidationCodeHash,
 ) -> Result<(), InvalidCandidate> {
 	let pov_hash = pov.hash();
-	let validation_code_hash = validation_code.hash();
 
 	let encoded_pov_size = pov.encoded_size();
 	if encoded_pov_size > max_pov_size as usize {
@@ -487,7 +486,7 @@ fn perform_basic_checks(
 		return Err(InvalidCandidate::PoVHashMismatch);
 	}
 
-	if validation_code_hash != candidate.validation_code_hash {
+	if *validation_code_hash != candidate.validation_code_hash {
 		return Err(InvalidCandidate::CodeHashMismatch);
 	}
 

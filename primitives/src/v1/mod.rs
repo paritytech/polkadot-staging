@@ -38,7 +38,8 @@ pub use polkadot_core_primitives::v1::{
 
 // Export some polkadot-parachain primitives
 pub use polkadot_parachain::primitives::{
-	Id, LOWEST_USER_ID, LOWEST_PUBLIC_ID, HrmpChannelId, UpwardMessage, HeadData, ValidationCode, ValidationCodeHash,
+	Id, LOWEST_USER_ID, LOWEST_PUBLIC_ID, HrmpChannelId, UpwardMessage, HeadData, ValidationCode,
+	ValidationCodeAndHash, ValidationCodeHash,
 };
 
 // Export some basic parachain primitives from v0.
@@ -873,6 +874,7 @@ impl ApprovalVote {
 
 sp_api::decl_runtime_apis! {
 	/// The API for querying the state of parachains on-chain.
+	#[api_version(2)]
 	pub trait ParachainHost<H: Decode = Hash, N: Encode + Decode = BlockNumber> {
 		/// Get the current validators.
 		fn validators() -> Vec<ValidatorId>;
@@ -905,12 +907,48 @@ sp_api::decl_runtime_apis! {
 		/// Get the session info for the given session, if stored.
 		fn session_info(index: SessionIndex) -> Option<SessionInfo>;
 
-		/// Fetch the validation code used by a para, making the given `OccupiedCoreAssumption`.
+		/// Old method to fetch the validation code used by a para, making the given
+		/// `OccupiedCoreAssumption`.
 		///
 		/// Returns `None` if either the para is not registered or the assumption is `Freed`
 		/// and the para already occupies a core.
+		///
+		/// To fetch the hash of the code use [`Self::validation_code_hash`].
+		///
+		/// NOTE: This function is no longer available since parachain host version 2.
+		#[skip_initialize_block]
+		#[changed_in(2)]
 		fn validation_code(para_id: Id, assumption: OccupiedCoreAssumption)
 			-> Option<ValidationCode>;
+
+		/// Fetch both the validation code and the hash of the validation code used by para,
+		/// making the given `OccupiedCoreAssumption`.
+		///
+		/// Returns `None` if either the para is not registered or the assumption is `Freed`
+		/// and the para already occupies a core.
+		///
+		/// To fetch only the hash of the code use [`Self::validation_code_hash`].
+		///
+		/// NOTE: This function is only available since parachain host version 2.
+		#[skip_initialize_block]
+		fn validation_code(para_id: Id, assumption: OccupiedCoreAssumption)
+			-> Option<ValidationCodeAndHash>;
+
+		/// Fetch the hash of the validation code used by a para, making the given
+		/// `OccupiedCoreAssumption`.
+		///
+		/// Returns `None` if either the para is not registered or the assumption is `Freed`
+		/// and the para already occupies a core.
+		///
+		/// This is similar to [`Self::validation_code_and_hash`] except it fetches the hash of
+		/// the code.
+		///
+		/// NOTE: This function is only available since parachain host version 2.
+		#[skip_initialize_block]
+		fn validation_code_hash(
+			para_id: Id,
+			assumption: OccupiedCoreAssumption,
+		) -> Option<ValidationCodeHash>;
 
 		/// Get the receipt of a candidate pending availability. This returns `Some` for any paras
 		/// assigned to occupied cores in `availability_cores` and `None` otherwise.

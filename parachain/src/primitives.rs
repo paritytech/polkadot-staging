@@ -68,7 +68,7 @@ impl ValidationCode {
 ///
 /// This type makes it easy to enforce that a hash is a validation code hash on the type level.
 #[derive(Clone, Copy, Encode, Decode, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(MallocSizeOf))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, MallocSizeOf))]
 pub struct ValidationCodeHash(Hash);
 
 impl sp_std::fmt::Display for ValidationCodeHash {
@@ -104,6 +104,68 @@ impl From<[u8; 32]> for ValidationCodeHash {
 impl sp_std::fmt::LowerHex for ValidationCodeHash {
 	fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
 		sp_std::fmt::LowerHex::fmt(&self.0, f)
+	}
+}
+
+/// Parachain validation code and its hash.
+///
+/// The hash is as resulting from [`ValidationCode::hash`].
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash, MallocSizeOf))]
+pub struct ValidationCodeAndHash {
+	code: ValidationCode,
+	hash: ValidationCodeHash,
+}
+
+impl ValidationCodeAndHash {
+	/// Create from the code and hash.
+	pub fn new(code: ValidationCode, hash: ValidationCodeHash) -> Self {
+		Self {
+			hash,
+			code,
+		}
+	}
+
+	/// Create from code and compute the hash.
+	///
+	/// Depending on the size of the code the hash computation can be expensive.
+	pub fn compute_from_code(code: ValidationCode) -> Self {
+		Self {
+			hash: code.hash(),
+			code,
+		}
+	}
+
+	/// Get a reference to the validation code.
+	pub fn code(&self) -> &ValidationCode {
+		&self.code
+	}
+
+	/// Get a reference to the validation code hash.
+	pub fn hash(&self) -> &ValidationCodeHash {
+		&self.hash
+	}
+
+	/// Convert into validation code and the hash
+	pub fn into_parts(self) -> (ValidationCode, ValidationCodeHash) {
+		(self.code, self.hash)
+	}
+
+	/// Convert into validation code
+	pub fn into_code(self) -> ValidationCode {
+		self.code
+	}
+}
+
+impl From<ValidationCodeAndHash> for ValidationCode {
+	fn from(x: ValidationCodeAndHash) -> Self {
+		x.into_code()
+	}
+}
+
+impl Default for ValidationCodeAndHash {
+	fn default() -> Self {
+		Self::compute_from_code(Default::default())
 	}
 }
 

@@ -30,6 +30,7 @@ mod handle_new_activations {
 	};
 	use polkadot_primitives::v1::{
 		CollatorPair, Id as ParaId, PersistedValidationData, ScheduledCore, ValidationCode,
+		ValidationCodeAndHash,
 	};
 	use std::pin::Pin;
 
@@ -271,13 +272,15 @@ mod handle_new_activations {
 					}
 					Some(AllMessages::RuntimeApi(RuntimeApiMessage::Request(
 						_hash,
-						RuntimeApiRequest::ValidationCode(
+						RuntimeApiRequest::ValidationCodeHash(
 							_para_id,
 							OccupiedCoreAssumption::Free,
 							tx,
 						),
 					))) => {
-						tx.send(Ok(Some(ValidationCode(vec![1, 2, 3])))).unwrap();
+						tx.send(Ok(Some(ValidationCodeAndHash::compute_from_code(
+							vec![1, 2, 3].into()
+						).into_parts().1))).unwrap();
 					}
 					Some(msg) => {
 						panic!("didn't expect any other overseer requests; got {:?}", msg)

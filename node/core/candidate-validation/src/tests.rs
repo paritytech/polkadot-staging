@@ -16,7 +16,7 @@
 
 use super::*;
 use polkadot_node_subsystem_test_helpers as test_helpers;
-use polkadot_primitives::v1::{HeadData, UpwardMessage};
+use polkadot_primitives::v1::{HeadData, UpwardMessage, ValidationCode};
 use sp_core::testing::TaskExecutor;
 use futures::executor;
 use assert_matches::assert_matches;
@@ -39,7 +39,7 @@ fn collator_sign(descriptor: &mut CandidateDescriptor, collator: Sr25519Keyring)
 #[test]
 fn correctly_checks_included_assumption() {
 	let validation_data: PersistedValidationData = Default::default();
-	let validation_code: ValidationCode = vec![1, 2, 3].into();
+	let validation_code_and_hash = ValidationCodeAndHash::compute_from_code(vec![1, 2, 3].into());
 
 	let persisted_validation_data_hash = validation_data.hash();
 	let relay_parent = [2; 32].into();
@@ -86,13 +86,13 @@ fn correctly_checks_included_assumption() {
 				assert_eq!(rp, relay_parent);
 				assert_eq!(p, para_id);
 
-				let _ = tx.send(Ok(Some(validation_code.clone())));
+				let _ = tx.send(Ok(Some(validation_code_and_hash.clone())));
 			}
 		);
 
 		assert_matches!(check_result.await.unwrap(), AssumptionCheckOutcome::Matches(o, v) => {
 			assert_eq!(o, validation_data);
-			assert_eq!(v, validation_code);
+			assert_eq!(v, validation_code_and_hash);
 		});
 	};
 
@@ -103,7 +103,7 @@ fn correctly_checks_included_assumption() {
 #[test]
 fn correctly_checks_timed_out_assumption() {
 	let validation_data: PersistedValidationData = Default::default();
-	let validation_code: ValidationCode = vec![1, 2, 3].into();
+	let validation_code_and_hash = ValidationCodeAndHash::compute_from_code(vec![1, 2, 3].into());
 
 	let persisted_validation_data_hash = validation_data.hash();
 	let relay_parent = [2; 32].into();
@@ -150,13 +150,13 @@ fn correctly_checks_timed_out_assumption() {
 				assert_eq!(rp, relay_parent);
 				assert_eq!(p, para_id);
 
-				let _ = tx.send(Ok(Some(validation_code.clone())));
+				let _ = tx.send(Ok(Some(validation_code_and_hash.clone())));
 			}
 		);
 
 		assert_matches!(check_result.await.unwrap(), AssumptionCheckOutcome::Matches(o, v) => {
 			assert_eq!(o, validation_data);
-			assert_eq!(v, validation_code);
+			assert_eq!(v, validation_code_and_hash);
 		});
 	};
 
@@ -343,19 +343,19 @@ fn candidate_validation_ok_is_ok() {
 
 	let pov = PoV { block_data: BlockData(vec![1; 32]) };
 	let head_data = HeadData(vec![1, 1, 1]);
-	let validation_code = ValidationCode(vec![2; 16]);
+	let validation_code_and_hash = ValidationCodeAndHash::compute_from_code(vec![2; 16].into());
 
 	let mut descriptor = CandidateDescriptor::default();
 	descriptor.pov_hash = pov.hash();
 	descriptor.para_head = head_data.hash();
-	descriptor.validation_code_hash = validation_code.hash();
+	descriptor.validation_code_hash = validation_code_and_hash.hash().clone();
 	collator_sign(&mut descriptor, Sr25519Keyring::Alice);
 
 	let check = perform_basic_checks(
 		&descriptor,
 		validation_data.max_pov_size,
 		&pov,
-		&validation_code,
+		&validation_code_and_hash.hash(),
 	);
 	assert!(check.is_ok());
 
@@ -371,7 +371,7 @@ fn candidate_validation_ok_is_ok() {
 	let v = executor::block_on(validate_candidate_exhaustive(
 		MockValidatorBackend::with_hardcoded_result(Ok(validation_result)),
 		validation_data.clone(),
-		validation_code,
+		validation_code_and_hash,
 		descriptor,
 		Arc::new(pov),
 		&Default::default(),
@@ -394,18 +394,18 @@ fn candidate_validation_bad_return_is_invalid() {
 	let validation_data = PersistedValidationData { max_pov_size: 1024, ..Default::default() };
 
 	let pov = PoV { block_data: BlockData(vec![1; 32]) };
-	let validation_code = ValidationCode(vec![2; 16]);
+	let validation_code_and_hash = ValidationCodeAndHash::compute_from_code(vec![2; 16].into());
 
 	let mut descriptor = CandidateDescriptor::default();
 	descriptor.pov_hash = pov.hash();
-	descriptor.validation_code_hash = validation_code.hash();
+	descriptor.validation_code_hash = validation_code_and_hash.hash().clone();
 	collator_sign(&mut descriptor, Sr25519Keyring::Alice);
 
 	let check = perform_basic_checks(
 		&descriptor,
 		validation_data.max_pov_size,
 		&pov,
-		&validation_code,
+		&validation_code_and_hash.hash(),
 	);
 	assert!(check.is_ok());
 
@@ -414,7 +414,7 @@ fn candidate_validation_bad_return_is_invalid() {
 			Err(ValidationError::InvalidCandidate(WasmInvalidCandidate::AmbigiousWorkerDeath))
 		),
 		validation_data,
-		validation_code,
+		validation_code_and_hash,
 		descriptor,
 		Arc::new(pov),
 		&Default::default(),
@@ -430,18 +430,18 @@ fn candidate_validation_timeout_is_internal_error() {
 	let validation_data = PersistedValidationData { max_pov_size: 1024, ..Default::default() };
 
 	let pov = PoV { block_data: BlockData(vec![1; 32]) };
-	let validation_code = ValidationCode(vec![2; 16]);
+	let validation_code_and_hash = ValidationCodeAndHash::compute_from_code(vec![2; 16].into());
 
 	let mut descriptor = CandidateDescriptor::default();
 	descriptor.pov_hash = pov.hash();
-	descriptor.validation_code_hash = validation_code.hash();
+	descriptor.validation_code_hash = validation_code_and_hash.hash().clone();
 	collator_sign(&mut descriptor, Sr25519Keyring::Alice);
 
 	let check = perform_basic_checks(
 		&descriptor,
 		validation_data.max_pov_size,
 		&pov,
-		&validation_code,
+		&validation_code_and_hash.hash(),
 	);
 	assert!(check.is_ok());
 
@@ -450,7 +450,7 @@ fn candidate_validation_timeout_is_internal_error() {
 			Err(ValidationError::InvalidCandidate(WasmInvalidCandidate::HardTimeout)),
 		),
 		validation_data,
-		validation_code,
+		validation_code_and_hash,
 		descriptor,
 		Arc::new(pov),
 		&Default::default(),
@@ -465,7 +465,7 @@ fn candidate_validation_code_mismatch_is_invalid() {
 	let validation_data = PersistedValidationData { max_pov_size: 1024, ..Default::default() };
 
 	let pov = PoV { block_data: BlockData(vec![1; 32]) };
-	let validation_code = ValidationCode(vec![2; 16]);
+	let validation_code_and_hash = ValidationCodeAndHash::compute_from_code(vec![2; 16].into());
 
 	let mut descriptor = CandidateDescriptor::default();
 	descriptor.pov_hash = pov.hash();
@@ -476,7 +476,7 @@ fn candidate_validation_code_mismatch_is_invalid() {
 		&descriptor,
 		validation_data.max_pov_size,
 		&pov,
-		&validation_code,
+		&validation_code_and_hash.hash(),
 	);
 	assert_matches!(check, Err(InvalidCandidate::CodeHashMismatch));
 
@@ -485,7 +485,7 @@ fn candidate_validation_code_mismatch_is_invalid() {
 			Err(ValidationError::InvalidCandidate(WasmInvalidCandidate::HardTimeout)),
 		),
 		validation_data,
-		validation_code,
+		validation_code_and_hash,
 		descriptor,
 		Arc::new(pov),
 		&Default::default(),
@@ -503,17 +503,18 @@ fn compressed_code_works() {
 	let head_data = HeadData(vec![1, 1, 1]);
 
 	let raw_code = vec![2u8; 16];
-	let validation_code = sp_maybe_compressed_blob::compress(
+	let validation_code_and_hash = sp_maybe_compressed_blob::compress(
 		&raw_code,
 		VALIDATION_CODE_BOMB_LIMIT,
 	)
 		.map(ValidationCode)
+		.map(ValidationCodeAndHash::compute_from_code)
 		.unwrap();
 
 	let mut descriptor = CandidateDescriptor::default();
 	descriptor.pov_hash = pov.hash();
 	descriptor.para_head = head_data.hash();
-	descriptor.validation_code_hash = validation_code.hash();
+	descriptor.validation_code_hash = validation_code_and_hash.hash().clone();
 	collator_sign(&mut descriptor, Sr25519Keyring::Alice);
 
 	let validation_result = WasmValidationResult {
@@ -528,7 +529,7 @@ fn compressed_code_works() {
 	let v = executor::block_on(validate_candidate_exhaustive(
 		MockValidatorBackend::with_hardcoded_result(Ok(validation_result)),
 		validation_data,
-		validation_code,
+		validation_code_and_hash,
 		descriptor,
 		Arc::new(pov),
 		&Default::default(),
@@ -545,17 +546,18 @@ fn code_decompression_failure_is_invalid() {
 	let head_data = HeadData(vec![1, 1, 1]);
 
 	let raw_code = vec![2u8; VALIDATION_CODE_BOMB_LIMIT + 1];
-	let validation_code = sp_maybe_compressed_blob::compress(
+	let validation_code_and_hash = sp_maybe_compressed_blob::compress(
 		&raw_code,
 		VALIDATION_CODE_BOMB_LIMIT + 1,
 	)
 		.map(ValidationCode)
+		.map(ValidationCodeAndHash::compute_from_code)
 		.unwrap();
 
 	let mut descriptor = CandidateDescriptor::default();
 	descriptor.pov_hash = pov.hash();
 	descriptor.para_head = head_data.hash();
-	descriptor.validation_code_hash = validation_code.hash();
+	descriptor.validation_code_hash = validation_code_and_hash.hash().clone();
 	collator_sign(&mut descriptor, Sr25519Keyring::Alice);
 
 	let validation_result = WasmValidationResult {
@@ -570,7 +572,7 @@ fn code_decompression_failure_is_invalid() {
 	let v = executor::block_on(validate_candidate_exhaustive(
 		MockValidatorBackend::with_hardcoded_result(Ok(validation_result)),
 		validation_data,
-		validation_code,
+		validation_code_and_hash,
 		descriptor,
 		Arc::new(pov),
 		&Default::default(),
@@ -599,12 +601,12 @@ fn pov_decompression_failure_is_invalid() {
 		.map(|raw| PoV { block_data: BlockData(raw) })
 		.unwrap();
 
-	let validation_code = ValidationCode(vec![2; 16]);
+	let validation_code_and_hash = ValidationCodeAndHash::compute_from_code(vec![2; 16].into());
 
 	let mut descriptor = CandidateDescriptor::default();
 	descriptor.pov_hash = pov.hash();
 	descriptor.para_head = head_data.hash();
-	descriptor.validation_code_hash = validation_code.hash();
+	descriptor.validation_code_hash = validation_code_and_hash.hash().clone();
 	collator_sign(&mut descriptor, Sr25519Keyring::Alice);
 
 	let validation_result = WasmValidationResult {
@@ -619,7 +621,7 @@ fn pov_decompression_failure_is_invalid() {
 	let v = executor::block_on(validate_candidate_exhaustive(
 		MockValidatorBackend::with_hardcoded_result(Ok(validation_result)),
 		validation_data,
-		validation_code,
+		validation_code_and_hash,
 		descriptor,
 		Arc::new(pov),
 		&Default::default(),

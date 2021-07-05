@@ -24,7 +24,8 @@ use polkadot_primitives::v1::{
 	AuthorityDiscoveryId, BlockNumber, CandidateCommitments, CandidateEvent,
 	CommittedCandidateReceipt, CoreState, GroupRotationInfo, Hash, Id as ParaId,
 	InboundDownwardMessage, InboundHrmpMessage, OccupiedCoreAssumption, PersistedValidationData,
-	SessionIndex, SessionInfo, ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex,
+	SessionIndex, SessionInfo, ValidationCode, ValidationCodeAndHash, ValidationCodeHash,
+	ValidatorId, ValidatorIndex,
 };
 
 const AUTHORITIES_CACHE_SIZE: usize = 128 * 1024;
@@ -35,6 +36,7 @@ const PERSISTED_VALIDATION_DATA_CACHE_SIZE: usize = 64 * 1024;
 const CHECK_VALIDATION_OUTPUTS_CACHE_SIZE: usize = 64 * 1024;
 const SESSION_INDEX_FOR_CHILD_CACHE_SIZE: usize = 64 * 1024;
 const VALIDATION_CODE_CACHE_SIZE: usize = 10 * 1024 * 1024;
+const VALIDATION_CODE_HASH_CACHE_SIZE: usize = 64 * 1024;
 const CANDIDATE_PENDING_AVAILABILITY_CACHE_SIZE: usize = 64 * 1024;
 const CANDIDATE_EVENTS_CACHE_SIZE: usize = 64 * 1024;
 const SESSION_INFO_CACHE_SIZE: usize = 64 * 1024;
@@ -76,7 +78,8 @@ pub(crate) struct RequestResultCache {
 	persisted_validation_data: MemoryLruCache<(Hash, ParaId, OccupiedCoreAssumption), ResidentSizeOf<Option<PersistedValidationData>>>,
 	check_validation_outputs: MemoryLruCache<(Hash, ParaId, CandidateCommitments), ResidentSizeOf<bool>>,
 	session_index_for_child: MemoryLruCache<Hash, ResidentSizeOf<SessionIndex>>,
-	validation_code: MemoryLruCache<(Hash, ParaId, OccupiedCoreAssumption), ResidentSizeOf<Option<ValidationCode>>>,
+	validation_code: MemoryLruCache<(Hash, ParaId, OccupiedCoreAssumption), ResidentSizeOf<Option<ValidationCodeAndHash>>>,
+	validation_code_hash: MemoryLruCache<(Hash, ParaId, OccupiedCoreAssumption), ResidentSizeOf<Option<ValidationCodeHash>>>,
 	validation_code_by_hash: MemoryLruCache<(Hash, ValidationCodeHash), ResidentSizeOf<Option<ValidationCode>>>,
 	candidate_pending_availability: MemoryLruCache<(Hash, ParaId), ResidentSizeOf<Option<CommittedCandidateReceipt>>>,
 	candidate_events: MemoryLruCache<Hash, ResidentSizeOf<Vec<CandidateEvent>>>,
@@ -97,6 +100,7 @@ impl Default for RequestResultCache {
 			check_validation_outputs: MemoryLruCache::new(CHECK_VALIDATION_OUTPUTS_CACHE_SIZE),
 			session_index_for_child: MemoryLruCache::new(SESSION_INDEX_FOR_CHILD_CACHE_SIZE),
 			validation_code: MemoryLruCache::new(VALIDATION_CODE_CACHE_SIZE),
+			validation_code_hash: MemoryLruCache::new(VALIDATION_CODE_HASH_CACHE_SIZE),
 			validation_code_by_hash: MemoryLruCache::new(VALIDATION_CODE_CACHE_SIZE),
 			candidate_pending_availability: MemoryLruCache::new(CANDIDATE_PENDING_AVAILABILITY_CACHE_SIZE),
 			candidate_events: MemoryLruCache::new(CANDIDATE_EVENTS_CACHE_SIZE),
@@ -165,12 +169,22 @@ impl RequestResultCache {
 		self.session_index_for_child.insert(relay_parent, ResidentSizeOf(index));
 	}
 
-	pub(crate) fn validation_code(&mut self, key: (Hash, ParaId, OccupiedCoreAssumption)) -> Option<&Option<ValidationCode>> {
+	pub(crate) fn validation_code(&mut self, key: (Hash, ParaId, OccupiedCoreAssumption)) -> Option<&Option<ValidationCodeAndHash>> {
 		self.validation_code.get(&key).map(|v| &v.0)
 	}
 
-	pub(crate) fn cache_validation_code(&mut self, key: (Hash, ParaId, OccupiedCoreAssumption), value: Option<ValidationCode>) {
+	pub(crate) fn cache_validation_code(&mut self, key: (Hash, ParaId, OccupiedCoreAssumption), value: Option<ValidationCodeAndHash>) {
+		let validation_code_hash = value.as_ref().map(|code_and_hash| code_and_hash.hash().clone());
+		self.validation_code_hash.insert(key, ResidentSizeOf(validation_code_hash));
 		self.validation_code.insert(key, ResidentSizeOf(value));
+	}
+
+	pub(crate) fn validation_code_hash(&mut self, key: (Hash, ParaId, OccupiedCoreAssumption)) -> Option<&Option<ValidationCodeHash>> {
+		self.validation_code_hash.get(&key).map(|v| &v.0)
+	}
+
+	pub(crate) fn cache_validation_code_hash(&mut self, key: (Hash, ParaId, OccupiedCoreAssumption), value: Option<ValidationCodeHash>) {
+		self.validation_code_hash.insert(key, ResidentSizeOf(value));
 	}
 
 	pub(crate) fn validation_code_by_hash(&mut self, key: (Hash, ValidationCodeHash)) -> Option<&Option<ValidationCode>> {
@@ -238,7 +252,8 @@ pub(crate) enum RequestResult {
 	PersistedValidationData(Hash, ParaId, OccupiedCoreAssumption, Option<PersistedValidationData>),
 	CheckValidationOutputs(Hash, ParaId, CandidateCommitments, bool),
 	SessionIndexForChild(Hash, SessionIndex),
-	ValidationCode(Hash, ParaId, OccupiedCoreAssumption, Option<ValidationCode>),
+	ValidationCode(Hash, ParaId, OccupiedCoreAssumption, Option<ValidationCodeAndHash>),
+	ValidationCodeHash(Hash, ParaId, OccupiedCoreAssumption, Option<ValidationCodeHash>),
 	ValidationCodeByHash(Hash, ValidationCodeHash, Option<ValidationCode>),
 	CandidatePendingAvailability(Hash, ParaId, Option<CommittedCandidateReceipt>),
 	CandidateEvents(Hash, Vec<CandidateEvent>),

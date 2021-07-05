@@ -28,7 +28,8 @@ use sp_std::result;
 #[cfg(feature = "std")]
 use sp_std::marker::PhantomData;
 use primitives::v1::{
-	Id as ParaId, ValidationCode, ValidationCodeHash, HeadData, SessionIndex, ConsensusLog,
+	Id as ParaId, ValidationCode, ValidationCodeAndHash, ValidationCodeHash, HeadData, SessionIndex,
+	ConsensusLog,
 };
 use sp_runtime::{traits::One, DispatchResult, SaturatedConversion};
 use frame_system::ensure_root;
@@ -290,7 +291,8 @@ decl_storage! {
 		/// The validation code hash of every live para.
 		///
 		/// Corresponding code can be retrieved with [`CodeByHash`].
-		CurrentCodeHash: map hasher(twox_64_concat) ParaId => Option<ValidationCodeHash>;
+		CurrentCodeHash get(fn current_code_hash):
+			map hasher(twox_64_concat) ParaId => Option<ValidationCodeHash>;
 		/// Actual past code hash, indicated by the para id as well as the block number at which it
 		/// became outdated.
 		///
@@ -473,7 +475,7 @@ impl<T: Config> Module<T> {
 	}
 
 	/// The validation code of live para.
-	pub(crate) fn current_code(para_id: &ParaId) -> Option<ValidationCode> {
+	pub(crate) fn current_code(para_id: &ParaId) -> Option<ValidationCodeAndHash> {
 		CurrentCodeHash::get(para_id).and_then(|code_hash| {
 			let code = CodeByHash::get(&code_hash);
 			if code.is_none() {
@@ -483,7 +485,7 @@ impl<T: Config> Module<T> {
 				);
 				debug_assert!(false, "inconsistent paras storages");
 			}
-			code
+			code.map(|code| ValidationCodeAndHash::new(code, code_hash))
 		})
 	}
 
@@ -829,8 +831,6 @@ impl<T: Config> Module<T> {
 	///
 	/// `assume_intermediate`, if provided, must be before `at`. This will return `None` if the validation
 	/// code has been pruned.
-	///
-	/// To get associated code see [`Self::validation_code_at`].
 	pub(crate) fn validation_code_hash_at(
 		id: ParaId,
 		at: T::BlockNumber,
@@ -1251,6 +1251,7 @@ mod tests {
 		let validation_upgrade_delay = 5;
 
 		let original_code = ValidationCode(vec![1, 2, 3]);
+		let original_code_and_hash = ValidationCodeAndHash::compute_from_code(original_code.clone());
 		let paras = vec![
 			(0u32.into(), ParaGenesisArgs {
 				parachain: true,
@@ -1277,9 +1278,10 @@ mod tests {
 
 			let para_id = ParaId::from(0);
 			let new_code = ValidationCode(vec![4, 5, 6]);
+			let new_code_and_hash = ValidationCodeAndHash::compute_from_code(new_code.clone());
 
 			run_to_block(2, None);
-			assert_eq!(Paras::current_code(&para_id), Some(original_code.clone()));
+			assert_eq!(Paras::current_code(&para_id), Some(original_code_and_hash.clone()));
 
 			let expected_at = {
 				// this parablock is in the context of block 1.
@@ -1290,7 +1292,7 @@ mod tests {
 				assert!(Paras::past_code_meta(&para_id).most_recent_change().is_none());
 				assert_eq!(<Paras as Store>::FutureCodeUpgrades::get(&para_id), Some(expected_at));
 				assert_eq!(<Paras as Store>::FutureCodeHash::get(&para_id), Some(new_code.hash()));
-				assert_eq!(Paras::current_code(&para_id), Some(original_code.clone()));
+				assert_eq!(Paras::current_code(&para_id), Some(original_code_and_hash.clone()));
 				check_code_is_stored(&original_code);
 				check_code_is_stored(&new_code);
 
@@ -1307,7 +1309,7 @@ mod tests {
 				assert!(Paras::past_code_meta(&para_id).most_recent_change().is_none());
 				assert_eq!(<Paras as Store>::FutureCodeUpgrades::get(&para_id), Some(expected_at));
 				assert_eq!(<Paras as Store>::FutureCodeHash::get(&para_id), Some(new_code.hash()));
-				assert_eq!(Paras::current_code(&para_id), Some(original_code.clone()));
+				assert_eq!(Paras::current_code(&para_id), Some(original_code_and_hash.clone()));
 				check_code_is_stored(&original_code);
 				check_code_is_stored(&new_code);
 			}
@@ -1329,7 +1331,7 @@ mod tests {
 				);
 				assert!(<Paras as Store>::FutureCodeUpgrades::get(&para_id).is_none());
 				assert!(<Paras as Store>::FutureCodeHash::get(&para_id).is_none());
-				assert_eq!(Paras::current_code(&para_id), Some(new_code.clone()));
+				assert_eq!(Paras::current_code(&para_id), Some(new_code_and_hash.clone()));
 				check_code_is_stored(&original_code);
 				check_code_is_stored(&new_code);
 			}
@@ -1342,6 +1344,7 @@ mod tests {
 		let validation_upgrade_delay = 5;
 
 		let original_code = ValidationCode(vec![1, 2, 3]);
+		let original_code_and_hash = ValidationCodeAndHash::compute_from_code(original_code.clone());
 		let paras = vec![
 			(0u32.into(), ParaGenesisArgs {
 				parachain: true,
@@ -1366,9 +1369,10 @@ mod tests {
 		new_test_ext(genesis_config).execute_with(|| {
 			let para_id = ParaId::from(0);
 			let new_code = ValidationCode(vec![4, 5, 6]);
+			let new_code_and_hash = ValidationCodeAndHash::compute_from_code(new_code.clone());
 
 			run_to_block(2, None);
-			assert_eq!(Paras::current_code(&para_id), Some(original_code.clone()));
+			assert_eq!(Paras::current_code(&para_id), Some(original_code_and_hash.clone()));
 
 			let expected_at = {
 				// this parablock is in the context of block 1.
@@ -1379,7 +1383,7 @@ mod tests {
 				assert!(Paras::past_code_meta(&para_id).most_recent_change().is_none());
 				assert_eq!(<Paras as Store>::FutureCodeUpgrades::get(&para_id), Some(expected_at));
 				assert_eq!(<Paras as Store>::FutureCodeHash::get(&para_id), Some(new_code.hash()));
-				assert_eq!(Paras::current_code(&para_id), Some(original_code.clone()));
+				assert_eq!(Paras::current_code(&para_id), Some(original_code_and_hash.clone()));
 
 				expected_at
 			};
@@ -1423,7 +1427,7 @@ mod tests {
 				);
 				assert!(<Paras as Store>::FutureCodeUpgrades::get(&para_id).is_none());
 				assert!(<Paras as Store>::FutureCodeHash::get(&para_id).is_none());
-				assert_eq!(Paras::current_code(&para_id), Some(new_code.clone()));
+				assert_eq!(Paras::current_code(&para_id), Some(new_code_and_hash.clone()));
 			}
 		});
 	}
@@ -1476,6 +1480,7 @@ mod tests {
 		let code_retention_period = 10;
 
 		let original_code = ValidationCode(vec![1, 2, 3]);
+		let original_code_and_hash = ValidationCodeAndHash::compute_from_code(original_code.clone());
 		let paras = vec![
 			(0u32.into(), ParaGenesisArgs {
 				parachain: true,
@@ -1503,7 +1508,7 @@ mod tests {
 			let new_code = ValidationCode(vec![4, 5, 6]);
 
 			run_to_block(2, None);
-			assert_eq!(Paras::current_code(&para_id), Some(original_code.clone()));
+			assert_eq!(Paras::current_code(&para_id), Some(original_code_and_hash.clone()));
 			check_code_is_stored(&original_code);
 
 			let expected_at = {
@@ -1515,7 +1520,7 @@ mod tests {
 				assert!(Paras::past_code_meta(&para_id).most_recent_change().is_none());
 				assert_eq!(<Paras as Store>::FutureCodeUpgrades::get(&para_id), Some(expected_at));
 				assert_eq!(<Paras as Store>::FutureCodeHash::get(&para_id), Some(new_code.hash()));
-				assert_eq!(Paras::current_code(&para_id), Some(original_code.clone()));
+				assert_eq!(Paras::current_code(&para_id), Some(original_code_and_hash.clone()));
 				check_code_is_stored(&original_code);
 				check_code_is_stored(&new_code);
 
@@ -1535,7 +1540,7 @@ mod tests {
 				assert!(Paras::past_code_meta(&para_id).most_recent_change().is_none());
 				assert_eq!(<Paras as Store>::FutureCodeUpgrades::get(&para_id), Some(expected_at));
 				assert_eq!(<Paras as Store>::FutureCodeHash::get(&para_id), Some(new_code.hash()));
-				assert_eq!(Paras::current_code(&para_id), Some(original_code.clone()));
+				assert_eq!(Paras::current_code(&para_id), Some(original_code_and_hash.clone()));
 				check_code_is_stored(&original_code);
 				check_code_is_stored(&new_code);
 
@@ -1643,9 +1648,18 @@ mod tests {
 			assert_eq!(ParaLifecycles::get(&b), Some(ParaLifecycle::Parachain));
 			assert_eq!(ParaLifecycles::get(&c), Some(ParaLifecycle::Parachain));
 
-			assert_eq!(Paras::current_code(&a), Some(vec![2].into()));
-			assert_eq!(Paras::current_code(&b), Some(vec![1].into()));
-			assert_eq!(Paras::current_code(&c), Some(vec![3].into()));
+			assert_eq!(
+				Paras::current_code(&a),
+				Some(ValidationCodeAndHash::compute_from_code(vec![2].into()))
+			);
+			assert_eq!(
+				Paras::current_code(&b),
+				Some(ValidationCodeAndHash::compute_from_code(vec![1].into()))
+			);
+			assert_eq!(
+				Paras::current_code(&c),
+				Some(ValidationCodeAndHash::compute_from_code(vec![3].into()))
+			);
 		})
 	}
 

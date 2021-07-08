@@ -1180,8 +1180,8 @@ sp_api::impl_runtime_apis! {
 	}
 
 	impl offchain_primitives::OffchainWorkerApi<Block> for Runtime {
-		fn offchain_worker(header: &<Block as BlockT>::Header) {
-			Executive::offchain_worker(header)
+		fn offchain_worker(header: &<Block as BlockT>::Header, is_final: bool) {
+			Executive::offchain_worker(header, is_final)
 		}
 	}
 

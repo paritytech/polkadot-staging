@@ -623,11 +623,9 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 			block_announce_validator_builder: None,
 		})?;
 
-	if config.offchain_worker.enabled {
-		let _ = service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
-		);
-	}
+	let _ = service::build_offchain_workers(
+		&config, task_manager.spawn_handle(), client.clone(), network.clone(),
+	);
 
 	let parachains_db = crate::parachains_db::open_creating(
 		config.database.path().ok_or(Error::DatabasePathRequired)?.into(),
@@ -1071,14 +1069,12 @@ fn new_light<Runtime, Dispatch>(mut config: Configuration) -> Result<(
 		);
 	}
 
-	if config.offchain_worker.enabled {
-		let _ = service::build_offchain_workers(
-			&config,
-			task_manager.spawn_handle(),
-			client.clone(),
-			network.clone(),
-		);
-	}
+	let _ = service::build_offchain_workers(
+		&config,
+		task_manager.spawn_handle(),
+		client.clone(),
+		network.clone(),
+	);
 
 	let light_deps = polkadot_rpc::LightDeps {
 		remote_blockchain: backend.remote_blockchain(),

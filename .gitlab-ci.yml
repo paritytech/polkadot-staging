@@ -10,8 +10,9 @@
 # which executes the job.
 
 stages:
-  - test
+  - check
   - build
+  - test
   - publish
   - deploy
 
@@ -30,7 +31,7 @@ variables:
   ARCH:                            "x86_64"
 
 default:
-  cache:                           {}
+  cache: {}
 
 .collect-artifacts:                &collect-artifacts
   artifacts:
@@ -39,6 +40,7 @@ default:
     expire_in:                     28 days
     paths:
       - ./artifacts/
+#       - ./target/
 
 .kubernetes-env:                   &kubernetes-env
   tags:
@@ -78,10 +80,14 @@ default:
       when: never
     - if: $CI_COMMIT_REF_NAME =~ /^[0-9]+$/                         # PRs
 
-#### stage:                        test
+#### stage:                        check
+# This is for jobs that don't rely on things like full-compiles of rust; static
+# code checks, short compile jobs (like runtimes), etc.
 
+# Checks that spec_version and/or impl_version have been bumped for changes
+# that effect the runtime
 check-runtime:
-  stage:                           test
+  stage:                           check
   image:                           paritytech/tools:latest
   <<:                              *kubernetes-env
   <<:                              *rules-pr-only
@@ -93,7 +99,7 @@ check-runtime:
   allow_failure:                   true
 
 check-line-width:
-  stage:                           test
+  stage:                           check
   image:                           paritytech/tools:latest
   <<:                              *kubernetes-env
   <<:                              *rules-pr-only
@@ -101,50 +107,9 @@ check-line-width:
     - ./scripts/gitlab/check_line_width.sh
   allow_failure:                   true
 
-test-deterministic-wasm:
-  stage:                           test
-  <<:                              *rules-test
-  <<:                              *docker-env
-  <<:                              *compiler-info
-  script:
-    - ./scripts/gitlab/test_deterministic_wasm.sh
-
-test-build-linux-stable:
-  stage:                           test
-  <<:                              *docker-env
-  <<:                              *compiler-info
-  <<:                              *collect-artifacts
-  variables:
-    RUST_TOOLCHAIN: stable
-    # Enable debug assertions since we are running optimized builds for testing
-    # but still want to have debug assertions.
-    RUSTFLAGS: "-Cdebug-assertions=y -Dwarnings"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-    - if: $CI_COMMIT_REF_NAME == "master"
-    - if: $CI_COMMIT_REF_NAME =~ /^v[0-9]+\.[0-9]+.*$/              # i.e. v1.0, v2.1rc1
-    - if: $CI_COMMIT_REF_NAME =~ /^[0-9]+$/                         # PRs
-    - if: $CI_COMMIT_REF_NAME == "rococo-v1"
-  script:
-    - ./scripts/gitlab/test_linux_stable.sh
-    # we're using the bin built here, instead of having a parallel `build-linux-release`
-    - time cargo build --release --verbose --bin polkadot
-    - sccache -s
-    # pack-artifacts
-    - mkdir -p ./artifacts
-    - VERSION="${CI_COMMIT_REF_NAME}" # will be tag or branch name
-    - mv ./target/release/polkadot ./artifacts/.
-    - sha256sum ./artifacts/polkadot | tee ./artifacts/polkadot.sha256
-    - EXTRATAG="$(./artifacts/polkadot --version |
-        sed -n -r 's/^polkadot ([0-9.]+.*-[0-9a-f]{7,13})-.*$/\1/p')"
-    - EXTRATAG="${CI_COMMIT_REF_NAME}-${EXTRATAG}-$(cut -c 1-8 ./artifacts/polkadot.sha256)"
-    - echo "Polkadot version = ${VERSION} (EXTRATAG = ${EXTRATAG})"
-    - echo -n ${VERSION} > ./artifacts/VERSION
-    - echo -n ${EXTRATAG} > ./artifacts/EXTRATAG
-    - cp -r scripts/docker/* ./artifacts
-
+# TODO: why does this check exist?
 check-web-wasm:
-  stage:                           test
+  stage:                           check
   <<:                              *rules-test
   <<:                              *docker-env
   <<:                              *compiler-info
@@ -154,18 +119,62 @@ check-web-wasm:
     - ./scripts/gitlab/check_web_wasm.sh
     - sccache -s
 
+
+# Check that the node will compile with `runtime-benchmarks` feature flag.
 check-runtime-benchmarks:
-  stage:                           test
+  stage:                           check
   <<:                              *rules-test
   <<:                              *docker-env
   <<:                              *compiler-info
   script:
-    # Check that the node will compile with `runtime-benchmarks` feature flag.
     - ./scripts/gitlab/check_runtime_benchmarks.sh
     - sccache -s
 
+
+#### stage:                        build
+# Time-consuming, heavy build processes like the full compilation
+
+# Build the full project with --release. Heavy job, so takes a while. Will also
+# create build artifacts (i.e., binaries) that could be used for testing, etc.
+# Note that while these binaries are *likely* safe, they should *NOT* be
+# publically distributed since we can never be sure of the security of our CI
+# runners.
+build-linux-stable:
+  stage:                           build
+  <<:                              *docker-env
+  <<:                              *compiler-info
+  <<:                              *collect-artifacts
+  variables:
+    RUST_TOOLCHAIN: stable
+    # Enable debug assertions since we are running optimized builds for testing
+    # but still want to have debug assertions.
+    # If removed, also remove from test-linux-stable
+    RUSTFLAGS: "-Cdebug-assertions=y -Dwarnings"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_REF_NAME == "master"
+    - if: $CI_COMMIT_REF_NAME =~ /^v[0-9]+\.[0-9]+.*$/              # i.e. v1.0, v2.1rc1
+    - if: $CI_COMMIT_REF_NAME =~ /^[0-9]+$/                         # PRs
+    - if: $CI_COMMIT_REF_NAME == "rococo-v1"
+  script:
+    - time cargo build --release --verbose --bin polkadot
+    - sccache -s
+    # pack-artifacts
+    - mkdir -p ./artifacts
+    - VERSION="${CI_COMMIT_REF_NAME}" # will be tag or branch name
+    - cp ./target/release/polkadot ./artifacts/.
+    - sha256sum ./artifacts/polkadot | tee ./artifacts/polkadot.sha256
+    - EXTRATAG="$(./artifacts/polkadot --version |
+        sed -n -r 's/^polkadot ([0-9.]+.*-[0-9a-f]{7,13})-.*$/\1/p')"
+    - EXTRATAG="${CI_COMMIT_REF_NAME}-${EXTRATAG}-$(cut -c 1-8 ./artifacts/polkadot.sha256)"
+    - echo "Polkadot version = ${VERSION} (EXTRATAG = ${EXTRATAG})"
+    - echo -n ${VERSION} > ./artifacts/VERSION
+    - echo -n ${EXTRATAG} > ./artifacts/EXTRATAG
+    - cp -r scripts/docker/* ./artifacts
+
+# TODO: why does this check exist?
 build-adder-collator:
-  stage:                           test
+  stage:                           build
   <<:                              *collect-artifacts
   <<:                              *docker-env
   <<:                              *compiler-info
@@ -185,23 +194,7 @@ build-adder-collator:
     - echo "adder-collator version = $(cat ./artifacts/VERSION) (EXTRATAG = $(cat ./artifacts/EXTRATAG))"
     - cp -r scripts/docker/* ./artifacts
 
-#### stage:                        build
-
-check-transaction-versions:
-  image:                           node:15
-  stage:                           build
-  <<:                              *rules-test
-  <<:                              *docker-env
-  needs:
-    - job:                         test-build-linux-stable
-      artifacts:                   true
-  before_script:
-    - apt-get -y update; apt-get -y install jq lsof
-    - npm install --ignore-scripts -g @polkadot/metadata-cmp
-    - git fetch origin release
-  script:
-    - scripts/gitlab/check_extrinsics_ordering.sh
-
+# TODO: Why does this job exist?
 generate-impl-guide:
   stage:                           build
   <<:                              *rules-test
@@ -212,6 +205,59 @@ generate-impl-guide:
   script:
     - mdbook build roadmap/implementers-guide
 
+#### stage:                        test
+# Tests that rely on either a fully compilation, or a large set of the artifacts
+# built during the compilation stage.
+
+# Run all tests. Hefty job.
+test-linux-stable:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *compiler-info
+  variables:
+    RUST_TOOLCHAIN: stable
+    # Enable debug assertions since we are running optimized builds for testing
+    # but still want to have debug assertions.
+    # If removed, also remove from test-linux-stable
+    RUSTFLAGS: "-Cdebug-assertions=y -Dwarnings"
+  needs:
+    - job:                         build-linux-stable
+      artifacts:                   true
+  script:
+    - time cargo test --workspace --release --verbose --locked --features=runtime-benchmarks
+
+# Checks that the ordering of extrinsic calls, etc has not changed. If any have,
+# the transaction version should be bumped (important for external implementers
+# like Ledger). Should be expanded to check more than extrinsic ordering.
+# Currently relies on full binary build since we have to run a node.
+check-transaction-versions:
+  image:                           node:15
+  stage:                           test
+  <<:                              *rules-test
+  <<:                              *docker-env
+  needs:
+    - job:                         build-linux-stable
+      artifacts:                   true
+  before_script:
+    - apt-get -y update; apt-get -y install jq lsof
+    - npm install --ignore-scripts -g @polkadot/metadata-cmp
+    - git fetch origin release
+  script:
+    - scripts/gitlab/check_extrinsics_ordering.sh
+
+# Checks that runtime WASMs are still bit-for-bit deterministic.
+test-deterministic-wasm:
+  stage:                           test
+  <<:                              *rules-test
+  <<:                              *docker-env
+  <<:                              *compiler-info
+  script:
+    - ./scripts/gitlab/test_deterministic_wasm.sh
+
+#### stage:                        publish
+
+# Anchor for building and pushing docker images. Used by publish-polkadot-image
+# and publish-adder-collator-image
 .build-push-image:                 &build-push-image
   <<:                              *kubernetes-env
   image:                           quay.io/buildah/stable
@@ -255,7 +301,7 @@ generate-impl-guide:
       dotenv: ./artifacts/build.env
 
 publish-polkadot-image:
-  stage:                           build
+  stage:                           publish
   <<:                              *build-push-image
   variables:
     <<:                            *image-variables
@@ -277,7 +323,7 @@ publish-polkadot-image:
         DOCKER_USER:               ${Docker_Hub_User_Parity}
         DOCKER_PASS:               ${Docker_Hub_Pass_Parity}
   needs:
-    - job:                         test-build-linux-stable
+    - job:                         build-linux-stable
       artifacts:                   true
 
 publish-adder-collator-image:
@@ -306,12 +352,10 @@ publish-adder-collator-image:
       # this artifact is used in trigger-simnet job
       dotenv: ./artifacts/collator.env
 
-#### stage:                        publish
-
 publish-s3-release:                &publish-s3
   stage:                           publish
   needs:
-    - job:                         test-build-linux-stable
+    - job:                         build-linux-stable
       artifacts:                   true
   <<:                              *kubernetes-env
   image:                           paritytech/awscli:latest

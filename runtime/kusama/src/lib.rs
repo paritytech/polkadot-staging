@@ -108,6 +108,9 @@ use constants::{time::*, currency::*, fee::*};
 // Weights used in the runtime.
 mod weights;
 
+// Voter bag threshold definitions.
+mod voter_bags;
+
 #[cfg(test)]
 mod tests;
 
@@ -498,6 +501,10 @@ type SlashCancelOrigin = EnsureOneOf<
 	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>
 >;
 
+parameter_types! {
+	pub const VoterBagThresholds: &'static [u64] = &voter_bags::THRESHOLDS;
+}
+
 impl pallet_staking::Config for Runtime {
 	const MAX_NOMINATIONS: u32 = <NposCompactSolution24 as sp_npos_elections::CompactSolution>::LIMIT as u32;
 	type Currency = Balances;
@@ -522,6 +529,7 @@ impl pallet_staking::Config for Runtime {
 	type NextNewSession = Session;
 	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
+	type VoterBagThresholds = VoterBagThresholds;
 }
 
 parameter_types! {

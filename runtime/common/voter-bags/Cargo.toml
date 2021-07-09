@@ -1,0 +1,14 @@
+[package]
+name = "runtime-common-voter-bags"
+version = "0.9.8"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2018"
+
+[dependencies]
+pallet-staking = { git = "https://github.com/paritytech/substrate", branch = "prgn-nominator-unsorted-bags", features = ["make-bags"]}
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
+structopt = "0.3.21"
+
+westend-runtime = { path = "../../westend" }
+kusama-runtime = { path = "../../kusama" }
+polkadot-runtime = { path = "../../polkadot" }

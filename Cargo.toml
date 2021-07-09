@@ -29,6 +29,7 @@ members = [
 	"primitives",
 	"runtime/common",
 	"runtime/common/slot_range_helper",
+	"runtime/common/voter-bags",
 	"runtime/parachains",
 	"runtime/polkadot",
 	"runtime/kusama",

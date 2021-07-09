@@ -342,6 +342,7 @@ impl pallet_staking::Config for Runtime {
 	type GenesisElectionProvider =
 		frame_election_provider_support::onchain::OnChainSequentialPhragmen<Self>;
 	type WeightInfo = ();
+	type VoterBagThresholds = ();
 }
 
 impl pallet_grandpa::Config for Runtime {

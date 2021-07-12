@@ -687,6 +687,7 @@ impl TryFrom<VersionedMultiLocation> for MultiLocation {
 	fn try_from(x: VersionedMultiLocation) -> result::Result<Self, ()> {
 		match x {
 			VersionedMultiLocation::V0(x) => Ok(x),
+			_ => Err(()),
 		}
 	}
 }

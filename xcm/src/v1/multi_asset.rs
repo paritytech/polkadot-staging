@@ -1,4 +1,4 @@
-// Copyright 2020 Parity Technologies (UK) Ltd.
+// Copyright 2021 Parity Technologies (UK) Ltd.
 // This file is part of Cumulus.
 
 // Substrate is free software: you can redistribute it and/or modify
@@ -308,7 +308,7 @@ impl MultiAsset {
 
 impl From<MultiAsset> for VersionedMultiAsset {
 	fn from(x: MultiAsset) -> Self {
-		VersionedMultiAsset::V0(x)
+		VersionedMultiAsset::V1(x)
 	}
 }
 
@@ -316,7 +316,7 @@ impl TryFrom<VersionedMultiAsset> for MultiAsset {
 	type Error = ();
 	fn try_from(x: VersionedMultiAsset) -> result::Result<Self, ()> {
 		match x {
-			VersionedMultiAsset::V0(x) => Ok(x),
+			VersionedMultiAsset::V1(x) => Ok(x),
 			_ => Err(()),
 		}
 	}

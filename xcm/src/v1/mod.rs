@@ -1,4 +1,4 @@
-// Copyright 2020 Parity Technologies (UK) Ltd.
+// Copyright 2021 Parity Technologies (UK) Ltd.
 // This file is part of Cumulus.
 
 // Substrate is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Version 0 of the Cross-Consensus Message format data structures.
+//! Version 1 of the Cross-Consensus Message format data structures.
 
 use core::{result, convert::TryFrom, fmt::Debug};
 use derivative::Derivative;
@@ -29,7 +29,7 @@ mod order;
 mod traits;
 pub use junction::{Junction, NetworkId, BodyId, BodyPart};
 pub use multi_asset::{MultiAsset, AssetInstance};
-pub use multi_location::MultiLocation;
+pub use multi_location::{Junctions, MultiLocation};
 pub use order::Order;
 pub use traits::{Error, Result, SendXcm, ExecuteXcm, Outcome};
 
@@ -37,7 +37,7 @@ pub use traits::{Error, Result, SendXcm, ExecuteXcm, Outcome};
 pub mod prelude {
 	pub use super::junction::{Junction::*, NetworkId, BodyId, BodyPart};
 	pub use super::multi_asset::{MultiAsset::{self, *}, AssetInstance::{self, *}};
-	pub use super::multi_location::MultiLocation::{self, *};
+	pub use super::multi_location::{Junctions::{self, *}, MultiLocation};
 	pub use super::order::Order::{self, *};
 	pub use super::traits::{Error as XcmError, Result as XcmResult, SendXcm, ExecuteXcm, Outcome};
 	pub use super::{Xcm::{self, *}, OriginKind};
@@ -263,7 +263,7 @@ pub enum Xcm<Call> {
 
 impl<Call> From<Xcm<Call>> for VersionedXcm<Call> {
 	fn from(x: Xcm<Call>) -> Self {
-		VersionedXcm::V0(x)
+		VersionedXcm::V1(x)
 	}
 }
 
@@ -271,7 +271,7 @@ impl<Call> TryFrom<VersionedXcm<Call>> for Xcm<Call> {
 	type Error = ();
 	fn try_from(x: VersionedXcm<Call>) -> result::Result<Self, ()> {
 		match x {
-			VersionedXcm::V0(x) => Ok(x),
+			VersionedXcm::V1(x) => Ok(x),
 			_ => Err(()),
 		}
 	}

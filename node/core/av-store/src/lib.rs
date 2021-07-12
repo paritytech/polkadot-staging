@@ -36,20 +36,21 @@ use polkadot_primitives::v1::{
 use polkadot_node_primitives::{
 	ErasureChunk, AvailableData,
 };
-use polkadot_subsystem::{
+use polkadot_node_subsystem::{
 	FromOverseer, OverseerSignal, SubsystemError,
 	SubsystemContext, SpawnedSubsystem,
 	overseer,
 	ActiveLeavesUpdate,
 	errors::{ChainApiError, RuntimeApiError},
+	messages::{
+		AvailabilityStoreMessage, ChainApiMessage, RuntimeApiMessage, RuntimeApiRequest,
+	}
 };
 use polkadot_node_subsystem_util::{
 	self as util,
 	metrics::{self, prometheus},
 };
-use polkadot_subsystem::messages::{
-	AvailabilityStoreMessage, ChainApiMessage, RuntimeApiMessage, RuntimeApiRequest,
-};
+use polkadot_subsystem::;
 use bitvec::{vec::BitVec, order::Lsb0 as BitOrderLsb0};
 
 #[cfg(test)]
@@ -524,9 +525,8 @@ impl KnownUnfinalizedBlocks {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for AvailabilityStoreSubsystem
+impl<Context> overseer::overseer::Subsystem<Context> for AvailabilityStoreSubsystem
 where
-	Context: SubsystemContext<Message = AvailabilityStoreMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityStoreMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
@@ -543,7 +543,6 @@ where
 
 async fn run<Context>(mut subsystem: AvailabilityStoreSubsystem, mut ctx: Context)
 where
-	Context: SubsystemContext<Message = AvailabilityStoreMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityStoreMessage>,
 {
 	let mut next_pruning = Delay::new(subsystem.pruning_config.pruning_interval).fuse();
@@ -574,7 +573,6 @@ async fn run_iteration<Context>(
 )
 	-> Result<bool, Error>
 where
-	Context: SubsystemContext<Message = AvailabilityStoreMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityStoreMessage>,
 {
 	select! {
@@ -626,7 +624,6 @@ async fn process_block_activated<Context>(
 	activated: Hash,
 ) -> Result<(), Error>
 where
-	Context: SubsystemContext<Message = AvailabilityStoreMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityStoreMessage>,
 {
 	let now = subsystem.clock.now()?;
@@ -686,7 +683,6 @@ async fn process_new_head<Context>(
 	header: Header,
 ) -> Result<(), Error>
 where
-	Context: SubsystemContext<Message = AvailabilityStoreMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityStoreMessage>,
 {
 
@@ -855,7 +851,6 @@ async fn process_block_finalized<Context>(
 	finalized_number: BlockNumber,
 ) -> Result<(), Error>
 where
-	Context: SubsystemContext<Message = AvailabilityStoreMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityStoreMessage>,
 {
 	let now = subsystem.clock.now()?;

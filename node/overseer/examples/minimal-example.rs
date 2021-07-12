@@ -36,10 +36,8 @@ use polkadot_overseer::{
 	Overseer,
 	OverseerSignal,
 	SubsystemError,
-	gen::{
-		FromOverseer,
-		SpawnedSubsystem,
-	},
+	FromOverseer,
+	SpawnedSubsystem,
 };
 use polkadot_node_subsystem_types::messages::{
 	CandidateValidationMessage, CandidateBackingMessage,
@@ -58,7 +56,7 @@ struct Subsystem1;
 impl Subsystem1 {
 	async fn run<Ctx>(mut ctx: Ctx) -> ()
 	where
-		Ctx: overseer::SubsystemContext<Message=CandidateBackingMessage,AllMessages=AllMessages,Signal=OverseerSignal>,
+		Ctx: overseer::SubsystemContext<Message=CandidateBackingMessage>,
 	{
 		'louy: loop {
 			match ctx.try_recv().await {
@@ -85,14 +83,14 @@ impl Subsystem1 {
 				}.into(),
 				tx,
 			);
-			ctx.send_message(<Ctx as overseer::SubsystemContext>::AllMessages::from(msg)).await;
+			ctx.send_message(msg).await;
 		}
 		()
 	}
 }
 
 
-impl<Context> overseer::Subsystem<Context,SubsystemError> for Subsystem1
+impl<Context> overseer::Subsystem<Context> for Subsystem1
 where
 	Context: overseer::SubsystemContext<Message=CandidateBackingMessage,AllMessages=AllMessages,Signal=OverseerSignal>,
 {
@@ -144,11 +142,11 @@ impl Subsystem2 {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context,SubsystemError> for Subsystem2
+impl<Context> overseer::Subsystem<Context> for Subsystem2
 where
 	Context: overseer::SubsystemContext<Message=CandidateValidationMessage,AllMessages=AllMessages,Signal=OverseerSignal>,
 {
-	fn start(self, ctx: Context) -> SpawnedSubsystem<SubsystemError> {
+	fn start(self, ctx: Context) -> SpawnedSubsystem {
 		let future = Box::pin(async move {
 			Self::run(ctx).await;
 			Ok(())

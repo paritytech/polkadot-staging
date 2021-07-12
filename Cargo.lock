@@ -6521,16 +6521,13 @@ name = "polkadot-overseer"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
- "async-trait",
  "femme",
  "futures 0.3.15",
- "futures-timer 3.0.2",
  "kv-log-macro",
  "lru",
  "metered-channel",
  "polkadot-node-metrics",
  "polkadot-node-network-protocol",
- "polkadot-node-primitives",
  "polkadot-node-subsystem-types",
  "polkadot-overseer-all-subsystems-gen",
  "polkadot-overseer-gen",

@@ -56,9 +56,8 @@ impl DisputeParticipationSubsystem {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for DisputeParticipationSubsystem
+impl<Context> overseer::overseer::Subsystem<Context> for DisputeParticipationSubsystem
 where
-	Context: SubsystemContext<Message = DisputeParticipationMessage>,
 	Context: overseer::SubsystemContext<Message = DisputeParticipationMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
@@ -115,7 +114,6 @@ impl Error {
 
 async fn run<Context>(mut ctx: Context)
 where
-	Context: SubsystemContext<Message = DisputeParticipationMessage>,
 	Context: overseer::SubsystemContext<Message = DisputeParticipationMessage>,
 {
 	let mut state = State { recent_block: None };

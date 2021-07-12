@@ -35,17 +35,15 @@ use polkadot_node_subsystem::{
 		BoundToRelayParent,
 	},
 	ActiveLeavesUpdate, OverseerSignal,
-	SubsystemSender,
 	errors::{
 		SubsystemError,
 	},
-	SubsystemContext,
 	SpawnedSubsystem,
-	FromOverseer,
 };
 
 pub use overseer::{
 	Subsystem,
+	SubsystemContext,
 	TimeoutExt,
 	gen::OverseerError,
 	gen::Timeout,
@@ -765,13 +763,13 @@ impl<Job: JobTrait, Spawner> JobSubsystem<Job, Spawner> {
 	}
 }
 
-impl<Context, Job, Spawner> Subsystem<Context, SubsystemError> for JobSubsystem<Job, Spawner>
+impl<Context, Job, Spawner> overseer::Subsystem<Context> for JobSubsystem<Job, Spawner>
 where
 	Spawner: SpawnNamed + Send + Clone + Unpin + 'static,
-	Context: SubsystemContext<Message=Job::ToJob,Signal=OverseerSignal>,
+	Context: SubsystemContext<Message=Job::ToJob>,
 	Job: 'static + JobTrait + Send,
 	Job::RunArgs: Clone + Sync,
-	<Job as JobTrait>::ToJob: Sync + From<<Context as polkadot_overseer::SubsystemContext>::Message>,
+	<Job as JobTrait>::ToJob: Sync + From<<Context as SubsystemContext>::Message>,
 	Job::Metrics: Sync,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {

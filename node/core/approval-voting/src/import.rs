@@ -85,7 +85,7 @@ struct ImportedBlockInfoEnv<'a> {
 // Computes information about the imported block. Returns `None` if the info couldn't be extracted -
 // failure to communicate with overseer,
 async fn imported_block_info(
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	env: ImportedBlockInfoEnv<'_>,
 	block_hash: Hash,
 	block_header: &Header,
@@ -286,7 +286,7 @@ pub struct BlockImportedCandidates {
 ///
 /// It is the responsibility of the caller to schedule wakeups for each block.
 pub(crate) async fn handle_new_head(
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	state: &mut State,
 	db: &mut OverlayedBackend<'_, impl Backend>,
 	head: Hash,

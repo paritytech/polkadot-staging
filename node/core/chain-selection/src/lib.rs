@@ -306,9 +306,8 @@ impl ChainSelectionSubsystem {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for ChainSelectionSubsystem
+impl<Context> overseer::overseer::Subsystem<Context> for ChainSelectionSubsystem
 where
-	Context: SubsystemContext<Message = ChainSelectionMessage>,
 	Context: overseer::SubsystemContext<Message = ChainSelectionMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
@@ -338,7 +337,6 @@ async fn run<Context, B>(
 	clock: Box<dyn Clock + Send + Sync>,
 )
 	where
-		Context: SubsystemContext<Message = ChainSelectionMessage>,
 		Context: overseer::SubsystemContext<Message = ChainSelectionMessage>,
 		B: Backend,
 {
@@ -378,7 +376,6 @@ async fn run_iteration<Context, B>(
 )
 	-> Result<(), Error>
 	where
-		Context: SubsystemContext<Message = ChainSelectionMessage>,
 		Context: overseer::SubsystemContext<Message = ChainSelectionMessage>,
 		B: Backend,
 {

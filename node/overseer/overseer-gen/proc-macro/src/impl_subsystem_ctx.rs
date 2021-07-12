@@ -21,14 +21,14 @@ use super::*;
 
 /// Implement a builder pattern for the `Overseer`-type,
 /// which acts as the gateway to constructing the overseer.
-pub(crate) fn impl_misc(info: &OverseerInfo) -> proc_macro2::TokenStream {
+pub(crate) fn impl_trait(info: &OverseerInfo) -> proc_macro2::TokenStream {
 	let overseer_name = info.overseer_name.clone();
 	let subsystem_sender_name = Ident::new(&(overseer_name.to_string() + "SubsystemSender"), overseer_name.span());
 	let subsystem_ctx_name = Ident::new(&(overseer_name.to_string() + "SubsystemContext"), overseer_name.span());
 	let consumes = &info.consumes();
 	let signal = &info.extern_signal_ty;
 	let wrapper_message = &info.message_wrapper;
-	let error_ty = &info.extern_error_ty;
+	let error = &info.extern_error_ty;
 	let support_crate = info.support_crate_name();
 
 	let ts = quote! {
@@ -44,7 +44,7 @@ pub(crate) fn impl_misc(info: &OverseerInfo) -> proc_macro2::TokenStream {
 
 		/// impl for wrapping message type...
 		#[#support_crate ::async_trait]
-		impl SubsystemSender< #wrapper_message > for #subsystem_sender_name {
+		impl #support_crate ::SubsystemSender< #wrapper_message > for #subsystem_sender_name {
 			async fn send_message(&mut self, msg: #wrapper_message) {
 				self.channels.send_and_log_error(self.signals_received.load(), msg).await;
 			}
@@ -70,7 +70,7 @@ pub(crate) fn impl_misc(info: &OverseerInfo) -> proc_macro2::TokenStream {
 		// based on the generated `From::from` impl for the individual variants.
 		#(
 		#[#support_crate ::async_trait]
-		impl SubsystemSender< #consumes > for #subsystem_sender_name {
+		impl #support_crate ::SubsystemSender< #consumes > for #subsystem_sender_name {
 			async fn send_message(&mut self, msg: #consumes) {
 				self.channels.send_and_log_error(self.signals_received.load(), #wrapper_message ::from ( msg )).await;
 			}
@@ -138,23 +138,20 @@ pub(crate) fn impl_misc(info: &OverseerInfo) -> proc_macro2::TokenStream {
 		#[#support_crate ::async_trait]
 		impl<M: std::fmt::Debug + Send + 'static> SubsystemContext for #subsystem_ctx_name<M>
 		where
-			#subsystem_sender_name: #support_crate ::SubsystemSender< #wrapper_message >,
+			#subsystem_sender_name: #support_crate:: SubsystemSender< #wrapper_message >,
 			#wrapper_message: From<M>,
 		{
 			type Message = M;
-			type Signal = #signal;
 			type Sender = #subsystem_sender_name;
-			type AllMessages = #wrapper_message;
-			type Error = #error_ty;
 
-			async fn try_recv(&mut self) -> ::std::result::Result<Option<FromOverseer<M, #signal>>, ()> {
+			async fn try_recv(&mut self) -> ::std::result::Result<Option<#support_crate ::FromOverseer<M, #signal>>, ()> {
 				match #support_crate ::poll!(self.recv()) {
 					#support_crate ::Poll::Ready(msg) => Ok(Some(msg.map_err(|_| ())?)),
 					#support_crate ::Poll::Pending => Ok(None),
 				}
 			}
 
-			async fn recv(&mut self) -> ::std::result::Result<FromOverseer<M, #signal>, #error_ty> {
+			async fn recv(&mut self) -> ::std::result::Result<#support_crate ::FromOverseer<M, #signal>, #error> {
 				loop {
 					// If we have a message pending an overseer signal, we only poll for signals
 					// in the meantime.
@@ -223,7 +220,7 @@ pub(crate) fn impl_misc(info: &OverseerInfo) -> proc_macro2::TokenStream {
 			}
 
 			fn spawn(&mut self, name: &'static str, s: Pin<Box<dyn Future<Output = ()> + Send>>)
-				-> ::std::result::Result<(), #error_ty>
+				-> ::std::result::Result<(), #error>
 			{
 				self.to_overseer.unbounded_send(#support_crate ::ToOverseer::SpawnJob {
 					name,
@@ -233,7 +230,7 @@ pub(crate) fn impl_misc(info: &OverseerInfo) -> proc_macro2::TokenStream {
 			}
 
 			fn spawn_blocking(&mut self, name: &'static str, s: Pin<Box<dyn Future<Output = ()> + Send>>)
-				-> ::std::result::Result<(), #error_ty>
+				-> ::std::result::Result<(), #error>
 			{
 				self.to_overseer.unbounded_send(#support_crate ::ToOverseer::SpawnBlockingJob {
 					name,

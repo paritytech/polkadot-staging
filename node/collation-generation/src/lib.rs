@@ -85,7 +85,6 @@ impl CollationGenerationSubsystem {
 	/// Otherwise, most are logged and then discarded.
 	async fn run<Context>(mut self, mut ctx: Context)
 	where
-		Context: SubsystemContext<Message = CollationGenerationMessage>,
 		Context: overseer::SubsystemContext<Message = CollationGenerationMessage>,
 	{
 		// when we activate new leaves, we spawn a bunch of sub-tasks, each of which is
@@ -123,7 +122,6 @@ impl CollationGenerationSubsystem {
 		sender: &mpsc::Sender<AllMessages>,
 	) -> bool
 	where
-		Context: SubsystemContext<Message = CollationGenerationMessage>,
 		Context: overseer::SubsystemContext<Message = CollationGenerationMessage>,
 	{
 		match incoming {
@@ -169,9 +167,8 @@ impl CollationGenerationSubsystem {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for CollationGenerationSubsystem
+impl<Context> overseer::overseer::Subsystem<Context> for CollationGenerationSubsystem
 where
-	Context: SubsystemContext<Message = CollationGenerationMessage>,
 	Context: overseer::SubsystemContext<Message = CollationGenerationMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {

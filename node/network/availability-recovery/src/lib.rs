@@ -574,9 +574,8 @@ impl Default for State {
 	}
 }
 
-impl<Context> Subsystem<Context, SubsystemError> for AvailabilityRecoverySubsystem
+impl<Context> overseer::Subsystem<Context> for AvailabilityRecoverySubsystem
 where
-	Context: SubsystemContext<Message = AvailabilityRecoveryMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityRecoveryMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
@@ -621,7 +620,6 @@ async fn launch_interaction<Context>(
 	response_sender: oneshot::Sender<Result<AvailableData, RecoveryError>>,
 ) -> error::Result<()>
 where
-	Context: SubsystemContext<Message = AvailabilityRecoveryMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityRecoveryMessage>,
 {
 	let candidate_hash = receipt.hash();
@@ -678,7 +676,6 @@ async fn handle_recover<Context>(
 	response_sender: oneshot::Sender<Result<AvailableData, RecoveryError>>,
 ) -> error::Result<()>
 where
-	Context: SubsystemContext<Message = AvailabilityRecoveryMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityRecoveryMessage>,
 {
 	let candidate_hash = receipt.hash();
@@ -740,7 +737,6 @@ async fn query_full_data<Context>(
 	candidate_hash: CandidateHash,
 ) -> error::Result<Option<AvailableData>>
 where
-	Context: SubsystemContext<Message = AvailabilityRecoveryMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityRecoveryMessage>,
 {
 	let (tx, rx) = oneshot::channel();
@@ -767,7 +763,6 @@ impl AvailabilityRecoverySubsystem {
 		mut ctx: Context,
 	) -> SubsystemResult<()>
 	where
-		Context: SubsystemContext<Message = AvailabilityRecoveryMessage>,
 		Context: overseer::SubsystemContext<Message = AvailabilityRecoveryMessage>,
 	{
 		let mut state = State::default();

@@ -97,7 +97,6 @@ impl GossipSupport {
 
 	async fn run<Context>(self, ctx: Context)
 	where
-		Context: SubsystemContext<Message = GossipSupportMessage>,
 		Context: overseer::SubsystemContext<Message = GossipSupportMessage>,
 	{
 		let mut state = State::default();
@@ -106,7 +105,6 @@ impl GossipSupport {
 
 	async fn run_inner<Context>(self, mut ctx: Context, state: &mut State)
 	where
-		Context: SubsystemContext<Message = GossipSupportMessage>,
 		Context: overseer::SubsystemContext<Message = GossipSupportMessage>,
 	{
 		let Self { keystore } = self;
@@ -149,7 +147,6 @@ async fn determine_relevant_authorities<Context>(
 	relay_parent: Hash,
 ) -> Result<Vec<AuthorityDiscoveryId>, util::Error>
 where
-	Context: SubsystemContext<Message = GossipSupportMessage>,
 	Context: overseer::SubsystemContext<Message = GossipSupportMessage>,
 {
 	let authorities = util::request_authorities(relay_parent, ctx.sender()).await.await??;
@@ -185,7 +182,6 @@ async fn connect_to_authorities<Context>(
 	peer_set: PeerSet,
 ) -> oneshot::Receiver<usize>
 where
-	Context: SubsystemContext<Message = GossipSupportMessage>,
 	Context: overseer::SubsystemContext<Message = GossipSupportMessage>,
 {
 	let (failed, failed_rx) = oneshot::channel();
@@ -214,7 +210,6 @@ async fn update_gossip_topology<Context>(
 	relay_parent: Hash,
 ) -> Result<(), util::Error>
 where
-	Context: SubsystemContext<Message = GossipSupportMessage>,
 	Context: overseer::SubsystemContext<Message = GossipSupportMessage>,
 {
 	// retrieve BABE randomness
@@ -287,7 +282,6 @@ impl State {
 		leaves: impl Iterator<Item = Hash>,
 	) -> Result<(), util::Error>
 	where
-		Context: SubsystemContext<Message = GossipSupportMessage>,
 		Context: overseer::SubsystemContext<Message = GossipSupportMessage>,
 	{
 		for leaf in leaves {
@@ -338,7 +332,6 @@ impl State {
 		authorities: Vec<AuthorityDiscoveryId>,
 	) -> Result<(), util::Error>
 	where
-		Context: SubsystemContext<Message = GossipSupportMessage>,
 		Context: overseer::SubsystemContext<Message = GossipSupportMessage>,
 	{
 		let num = authorities.len();
@@ -388,9 +381,8 @@ impl State {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for GossipSupport
+impl<Context> overseer::overseer::Subsystem<Context> for GossipSupport
 where
-	Context: SubsystemContext<Message = GossipSupportMessage>,
 	Context: overseer::SubsystemContext<Message = GossipSupportMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {

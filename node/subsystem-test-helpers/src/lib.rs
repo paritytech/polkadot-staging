@@ -346,10 +346,10 @@ pub fn subsystem_test_harness<M, OverseerFactory, Overseer, TestFactory, Test>(
 /// This subsystem is useful for testing functionality that interacts with the overseer.
 pub struct ForwardSubsystem<M>(pub mpsc::Sender<M>);
 
-impl<M, Context> overseer::Subsystem<Context, SubsystemError> for ForwardSubsystem<M>
+impl<M, Context> overseer::overseer::Subsystem<Context> for ForwardSubsystem<M>
 where
 	M: std::fmt::Debug + Send + 'static,
-	Context: SubsystemContext<Message = M> + overseer::SubsystemContext<Message = M>,
+	Context: overseer::SubsystemContext<Message = M>,
 {
 	fn start(mut self, mut ctx: Context) -> SpawnedSubsystem {
 		let future = Box::pin(async move {

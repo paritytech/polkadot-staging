@@ -20,40 +20,6 @@ use quote::quote;
 use syn::parse_quote;
 
 #[test]
-fn print() {
-	let attr = quote! {
-		gen=AllMessage,
-		event=::some::why::ExternEvent,
-		signal=SigSigSig,
-		signal_capacity=111,
-		message_capacity=222,
-		error=OverseerError,
-	};
-
-	let item = quote! {
-		pub struct Ooooh<X = Pffffffft> where X: Secrit {
-			#[subsystem(no_dispatch, Foo)]
-			sub0: FooSubsystem,
-
-			#[subsystem(blocking, Bar)]
-			yyy: BaersBuyBilliardBalls,
-
-			#[subsystem(no_dispatch, blocking, Twain)]
-			fff: Beeeeep,
-
-			#[subsystem(Rope)]
-			mc: MountainCave,
-
-			metrics: Metrics,
-		}
-	};
-
-	let output = impl_overseer_gen(attr, item).expect("Simple example always works. qed");
-	println!("//generated:");
-	println!("{}", output);
-}
-
-#[test]
 fn struct_parse_full() {
 	let item: OverseerGuts = parse_quote! {
 		pub struct Ooooh<X = Pffffffft> where X: Secrit {

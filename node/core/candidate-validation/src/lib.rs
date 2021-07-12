@@ -85,9 +85,8 @@ impl CandidateValidationSubsystem {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for CandidateValidationSubsystem
+impl<Context> overseer::overseer::Subsystem<Context> for CandidateValidationSubsystem
 where
-	Context: SubsystemContext<Message = CandidateValidationMessage>,
 	Context: overseer::SubsystemContext<Message = CandidateValidationMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
@@ -108,7 +107,6 @@ async fn run<Context>(
 	program_path: PathBuf,
 ) -> SubsystemResult<()>
 where
-	Context: SubsystemContext<Message = CandidateValidationMessage>,
 	Context: overseer::SubsystemContext<Message = CandidateValidationMessage>,
 {
 	let (mut validation_host, task) = polkadot_node_core_pvf::start(
@@ -188,7 +186,6 @@ async fn runtime_api_request<T, Context>(
 	receiver: oneshot::Receiver<Result<T, RuntimeApiError>>,
 ) -> SubsystemResult<Result<T, RuntimeApiError>>
 where
-	Context: SubsystemContext<Message = CandidateValidationMessage>,
 	Context: overseer::SubsystemContext<Message = CandidateValidationMessage>,
 {
 	ctx.send_message(
@@ -214,7 +211,6 @@ async fn check_assumption_validation_data<Context>(
 	assumption: OccupiedCoreAssumption,
 ) -> SubsystemResult<AssumptionCheckOutcome>
 where
-	Context: SubsystemContext<Message = CandidateValidationMessage>,
 	Context: overseer::SubsystemContext<Message = CandidateValidationMessage>,
 {
 	let validation_data = {
@@ -267,7 +263,6 @@ async fn find_assumed_validation_data<Context>(
 	descriptor: &CandidateDescriptor,
 ) -> SubsystemResult<AssumptionCheckOutcome>
 where
-	Context: SubsystemContext<Message = CandidateValidationMessage>,
 	Context: overseer::SubsystemContext<Message = CandidateValidationMessage>,
 {
 	// The candidate descriptor has a `persisted_validation_data_hash` which corresponds to
@@ -305,7 +300,6 @@ async fn spawn_validate_from_chain_state<Context>(
 	metrics: &Metrics,
 ) -> SubsystemResult<Result<ValidationResult, ValidationFailed>>
 where
-	Context: SubsystemContext<Message = CandidateValidationMessage>,
 	Context: overseer::SubsystemContext<Message = CandidateValidationMessage>,
 {
 	let (validation_data, validation_code) =

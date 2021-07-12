@@ -1,6 +1,6 @@
 //! A dummy to be used with cargo expand
 
-use polkadot_overseer_gen::*;
+use polkadot_overseer_gen::prelude::*;
 use polkadot_node_network_protocol::WrongVariant;
 
 
@@ -8,8 +8,8 @@ use polkadot_node_network_protocol::WrongVariant;
 #[derive(Default)]
 pub struct AwesomeSubSys;
 
-impl ::polkadot_overseer_gen::Subsystem<XxxSubsystemContext<MsgStrukt>, Yikes> for  AwesomeSubSys {
-	fn start(self, _ctx: XxxSubsystemContext<MsgStrukt>) -> SpawnedSubsystem < Yikes > {
+impl Subsystem<XxxSubsystemContext<MsgStrukt>> for  AwesomeSubSys {
+	fn start(self, _ctx: XxxSubsystemContext<MsgStrukt>) -> SpawnedSubsystem {
 		unimplemented!("starting yay!")
 	}
 }
@@ -17,8 +17,8 @@ impl ::polkadot_overseer_gen::Subsystem<XxxSubsystemContext<MsgStrukt>, Yikes> f
 #[derive(Default)]
 pub struct GoblinTower;
 
-impl ::polkadot_overseer_gen::Subsystem<XxxSubsystemContext<Plinko>, Yikes> for GoblinTower {
-	fn start(self, _ctx: XxxSubsystemContext<Plinko>) -> SpawnedSubsystem < Yikes > {
+impl Subsystem<XxxSubsystemContext<Plinko>> for GoblinTower {
+	fn start(self, _ctx: XxxSubsystemContext<Plinko>) -> SpawnedSubsystem {
 		unimplemented!("welcum")
 	}
 }

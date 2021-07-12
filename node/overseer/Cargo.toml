@@ -5,13 +5,10 @@ authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
 
 [dependencies]
-async-trait = "0.1.42"
 client = { package = "sc-client-api", git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "master" }
 futures = "0.3.15"
-futures-timer = "3.0.2"
 polkadot-node-network-protocol = { path = "../network/protocol" }
-polkadot-node-primitives = { path = "../primitives" }
 polkadot-node-subsystem-types = { path = "../subsystem-types" }
 polkadot-node-metrics = { path = "../metrics" }
 polkadot-primitives = { path = "../../primitives" }
@@ -21,10 +18,8 @@ tracing = "0.1.26"
 lru = "0.6"
 
 [dev-dependencies]
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
-polkadot-node-network-protocol = { path = "../network/protocol" }
-polkadot-node-metrics = { path = "../metrics" }
 metered-channel = { path = "../metered-channel" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 futures = { version = "0.3.15", features = ["thread-pool"] }
 femme = "2.1.1"
 kv-log-macro = "1.0.7"

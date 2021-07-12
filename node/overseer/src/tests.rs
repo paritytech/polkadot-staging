@@ -33,6 +33,7 @@ use polkadot_node_subsystem_types::{
 
 use crate::{
 	self as overseer,
+	SpawnedSubsystem,
 	Overseer,
 	HeadSupportsParachains,
 	gen::Delay,
@@ -45,12 +46,9 @@ use assert_matches::assert_matches;
 
 use super::*;
 
-
-type SpawnedSubsystem = crate::gen::SpawnedSubsystem<SubsystemError>;
-
 struct TestSubsystem1(metered::MeteredSender<usize>);
 
-impl<C> overseer::Subsystem<C, SubsystemError> for TestSubsystem1
+impl<C> overseer::Subsystem<C> for TestSubsystem1
 where
 	C: overseer::SubsystemContext<Message=CandidateValidationMessage,Signal=OverseerSignal,AllMessages=AllMessages>,
 
@@ -80,7 +78,7 @@ where
 
 struct TestSubsystem2(metered::MeteredSender<usize>);
 
-impl<C> overseer::Subsystem<C, SubsystemError> for TestSubsystem2
+impl<C> overseer::Subsystem<C> for TestSubsystem2
 where
 	C: overseer::SubsystemContext<Message=CandidateBackingMessage,Signal=OverseerSignal,AllMessages=AllMessages>,
 {
@@ -127,7 +125,7 @@ where
 
 struct ReturnOnStart;
 
-impl<C> overseer::Subsystem<C, SubsystemError> for ReturnOnStart
+impl<C> overseer::Subsystem<C> for ReturnOnStart
 where
 	C: overseer::SubsystemContext<Message=CandidateBackingMessage,Signal=OverseerSignal,AllMessages=AllMessages>,
 {
@@ -304,7 +302,7 @@ fn overseer_ends_on_subsystem_exit() {
 
 struct TestSubsystem5(metered::MeteredSender<OverseerSignal>);
 
-impl<C> overseer::Subsystem<C, SubsystemError> for TestSubsystem5
+impl<C> overseer::Subsystem<C> for TestSubsystem5
 where
 	C: overseer::SubsystemContext<Message=CandidateValidationMessage,Signal=OverseerSignal,AllMessages=AllMessages>,
 {
@@ -336,7 +334,7 @@ where
 
 struct TestSubsystem6(metered::MeteredSender<OverseerSignal>);
 
-impl<C> Subsystem<C, SubsystemError> for TestSubsystem6
+impl<C> Subsystem<C> for TestSubsystem6
 where
 	C: overseer::SubsystemContext<Message=CandidateBackingMessage,Signal=OverseerSignal,AllMessages=AllMessages>,
 {
@@ -685,7 +683,7 @@ impl CounterSubsystem {
 	}
 }
 
-impl<C, M> Subsystem<C, SubsystemError> for CounterSubsystem
+impl<C, M> Subsystem<C> for CounterSubsystem
 where
 	C: overseer::SubsystemContext<Message=M,Signal=OverseerSignal,AllMessages=AllMessages>,
 	M: Send,

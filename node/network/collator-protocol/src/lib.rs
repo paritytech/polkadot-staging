@@ -100,8 +100,7 @@ impl CollatorProtocolSubsystem {
 	async fn run<Context>(self, ctx: Context) -> Result<()>
 	where
 		Context: overseer::SubsystemContext<Message=CollatorProtocolMessage>,
-		Context: SubsystemContext<Message=CollatorProtocolMessage>,
-	{
+		{
 		match self.protocol_side {
 			ProtocolSide::Validator { keystore, eviction_policy, metrics } => validator_side::run(
 				ctx,
@@ -119,9 +118,8 @@ impl CollatorProtocolSubsystem {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for CollatorProtocolSubsystem
+impl<Context> overseer::overseer::Subsystem<Context> for CollatorProtocolSubsystem
 where
-	Context: SubsystemContext<Message = CollatorProtocolMessage>,
 	Context: overseer::SubsystemContext<Message = CollatorProtocolMessage>,
 	<Context as SubsystemContext>::Sender: SubsystemSender,
 {

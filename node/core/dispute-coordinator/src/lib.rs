@@ -106,9 +106,8 @@ impl DisputeCoordinatorSubsystem {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for DisputeCoordinatorSubsystem
+impl<Context> overseer::overseer::Subsystem<Context> for DisputeCoordinatorSubsystem
 where
-	Context: SubsystemContext<Message = DisputeCoordinatorMessage>,
 	Context: overseer::SubsystemContext<Message = DisputeCoordinatorMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
@@ -269,8 +268,7 @@ async fn run<Context>(
 )
 where
 	Context: overseer::SubsystemContext<Message = DisputeCoordinatorMessage>,
-	Context: SubsystemContext<Message = DisputeCoordinatorMessage>
-{
+	{
 	loop {
 		let res = run_iteration(&mut ctx, &subsystem, &*clock).await;
 		match res {
@@ -302,8 +300,7 @@ async fn run_iteration<Context>(
 	-> Result<(), Error>
 where
 	Context: overseer::SubsystemContext<Message = DisputeCoordinatorMessage>,
-	Context: SubsystemContext<Message = DisputeCoordinatorMessage>
-{
+	{
 	let DisputeCoordinatorSubsystem { ref store, ref keystore, ref config } = *subsystem;
 	let mut state = State {
 		keystore: keystore.clone(),
@@ -341,7 +338,7 @@ where
 }
 
 async fn handle_new_activations(
-	ctx: &mut (impl SubsystemContext<Message = DisputeCoordinatorMessage> + overseer::SubsystemContext<Message = DisputeCoordinatorMessage>),
+	ctx: &mut impl overseer::SubsystemContext<Message = DisputeCoordinatorMessage>,
 	store: &dyn KeyValueDB,
 	state: &mut State,
 	config: &Config,

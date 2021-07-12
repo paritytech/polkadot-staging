@@ -50,7 +50,7 @@ pub struct FilteredSender<Sender, Fil> {
 }
 
 #[async_trait::async_trait]
-impl<Sender, Fil> overseer::SubsystemSender<AllMessages> for FilteredSender<Sender, Fil>
+impl<Sender, Fil> overseer::SubsystemSenderAllMessages> for FilteredSender<Sender, Fil>
 where
 	Sender: overseer::SubsystemSender<AllMessages>,
 	Fil: MsgFilter,
@@ -174,7 +174,7 @@ impl<Sub, Fil> FilteredSubsystem<Sub, Fil> {
 	}
 }
 
-impl<Context, Sub, Fil> overseer::Subsystem<Context, SubsystemError> for FilteredSubsystem<Sub, Fil>
+impl<Context, Sub, Fil> overseer::overseer::Subsystem<Context> for FilteredSubsystem<Sub, Fil>
 where
 	Context: overseer::SubsystemContext + SubsystemContext + Sync + Send,
 	Sub: overseer::Subsystem<FilteredContext<Context, Fil>, SubsystemError>,

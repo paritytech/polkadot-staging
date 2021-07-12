@@ -59,9 +59,8 @@ pub struct AvailabilityDistributionSubsystem {
 	metrics: Metrics,
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for AvailabilityDistributionSubsystem
+impl<Context> overseer::overseer::Subsystem<Context> for AvailabilityDistributionSubsystem
 where
-	Context: SubsystemContext<Message = AvailabilityDistributionMessage>,
 	Context: overseer::SubsystemContext<Message = AvailabilityDistributionMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
@@ -88,7 +87,6 @@ impl AvailabilityDistributionSubsystem {
 	/// Start processing work as passed on from the Overseer.
 	async fn run<Context>(mut self, mut ctx: Context) -> std::result::Result<(), Fatal>
 	where
-		Context: SubsystemContext<Message = AvailabilityDistributionMessage>,
 		Context: overseer::SubsystemContext<Message = AvailabilityDistributionMessage>,
 	{
 		let mut requester = Requester::new(self.metrics.clone()).fuse();

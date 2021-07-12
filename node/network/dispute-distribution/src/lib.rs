@@ -116,10 +116,9 @@ pub struct DisputeDistributionSubsystem<AD> {
 	metrics: Metrics,
 }
 
-impl<Context, AD> overseer::Subsystem<Context, SubsystemError> for DisputeDistributionSubsystem<AD>
+impl<Context, AD> overseer::overseer::Subsystem<Context> for DisputeDistributionSubsystem<AD>
 where
-	Context: SubsystemContext<Message = DisputeDistributionMessage>
-		+ overseer::SubsystemContext<Message = DisputeDistributionMessage>
+	Context: overseer::SubsystemContext<Message = DisputeDistributionMessage>
 		+ Sync + Send,
 	AD: AuthorityDiscovery + Clone,
 {
@@ -136,7 +135,7 @@ where
 	}
 }
 
-impl<AD> DisputeDistributionSubsystem<AD> 
+impl<AD> DisputeDistributionSubsystem<AD>
 where
 	AD: AuthorityDiscovery + Clone,
 {
@@ -154,8 +153,7 @@ where
 	/// Start processing work as passed on from the Overseer.
 	async fn run<Context>(mut self, mut ctx: Context) -> std::result::Result<(), Fatal>
 	where
-		Context: SubsystemContext<Message = DisputeDistributionMessage>
-			+ overseer::SubsystemContext<Message = DisputeDistributionMessage>
+		Context: overseer::SubsystemContext<Message = DisputeDistributionMessage>
 			+ Sync + Send,
 	{
 		loop {
@@ -248,7 +246,7 @@ enum MuxedMessage {
 
 impl MuxedMessage {
 	async fn receive(
-		ctx: &mut (impl SubsystemContext<Message = DisputeDistributionMessage> + overseer::SubsystemContext<Message = DisputeDistributionMessage>),
+		ctx: &mut impl overseer::SubsystemContext<Message = DisputeDistributionMessage>,
 		from_sender: &mut mpsc::Receiver<TaskFinish>,
 	) -> Self {
 		// We are only fusing here to make `select` happy, in reality we will quit if the stream

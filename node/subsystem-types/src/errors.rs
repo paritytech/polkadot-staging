@@ -144,6 +144,3 @@ impl SubsystemError {
 		Self::FromOrigin { origin, source: Box::new(err) }
 	}
 }
-
-/// Ease the use of subsystem errors.
-pub type SubsystemResult<T> = Result<T, self::SubsystemError>;

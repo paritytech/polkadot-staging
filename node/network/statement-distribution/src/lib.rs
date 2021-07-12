@@ -108,9 +108,8 @@ pub struct StatementDistribution {
 	metrics: Metrics,
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for StatementDistribution
+impl<Context> overseer::overseer::Subsystem<Context> for StatementDistribution
 where
-	Context: SubsystemContext<Message=StatementDistributionMessage>,
 	Context: overseer::SubsystemContext<Message=StatementDistributionMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
@@ -591,7 +590,7 @@ enum MuxedMessage {
 
 impl MuxedMessage {
 	async fn receive(
-		ctx: &mut (impl SubsystemContext<Message = StatementDistributionMessage> + overseer::SubsystemContext<Message = StatementDistributionMessage>),
+		ctx: &mut impl overseer::SubsystemContext<Message = StatementDistributionMessage>,
 		from_requester: &mut mpsc::Receiver<RequesterMessage>,
 		from_responder: &mut mpsc::Receiver<ResponderMessage>,
 	) -> MuxedMessage {
@@ -849,7 +848,7 @@ async fn circulate_statement_and_dependents(
 	gossip_peers: &HashSet<PeerId>,
 	peers: &mut HashMap<PeerId, PeerData>,
 	active_heads: &mut HashMap<Hash, ActiveHeadData>,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	relay_parent: Hash,
 	statement: SignedFullStatement,
 	priority_peers: Vec<PeerId>,
@@ -956,7 +955,7 @@ fn is_statement_large(statement: &SignedFullStatement) -> bool {
 async fn circulate_statement<'a>(
 	gossip_peers: &HashSet<PeerId>,
 	peers: &mut HashMap<PeerId, PeerData>,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	relay_parent: Hash,
 	stored: StoredStatement<'a>,
 	mut priority_peers: Vec<PeerId>,
@@ -1037,7 +1036,7 @@ async fn circulate_statement<'a>(
 async fn send_statements_about(
 	peer: PeerId,
 	peer_data: &mut PeerData,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	relay_parent: Hash,
 	candidate_hash: CandidateHash,
 	active_head: &ActiveHeadData,
@@ -1074,7 +1073,7 @@ async fn send_statements_about(
 async fn send_statements(
 	peer: PeerId,
 	peer_data: &mut PeerData,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	relay_parent: Hash,
 	active_head: &ActiveHeadData,
 	metrics: &Metrics,
@@ -1106,7 +1105,7 @@ async fn send_statements(
 }
 
 async fn report_peer(
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	peer: PeerId,
 	rep: Rep,
 ) {
@@ -1126,7 +1125,7 @@ async fn retrieve_statement_from_message<'a>(
 	peer: PeerId,
 	message: protocol_v1::StatementDistributionMessage,
 	active_head: &'a mut ActiveHeadData,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	req_sender: &mpsc::Sender<RequesterMessage>,
 	metrics: &Metrics,
 ) -> Option<UncheckedSignedFullStatement> {
@@ -1228,7 +1227,7 @@ async fn launch_request(
 	meta: StatementMetadata,
 	peer: PeerId,
 	req_sender: mpsc::Sender<RequesterMessage>,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	metrics: &Metrics,
 ) -> Option<LargeStatementStatus> {
 
@@ -1266,7 +1265,7 @@ async fn handle_incoming_message_and_circulate<'a>(
 	gossip_peers: &HashSet<PeerId>,
 	peers: &mut HashMap<PeerId, PeerData>,
 	active_heads: &'a mut HashMap<Hash, ActiveHeadData>,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	message: protocol_v1::StatementDistributionMessage,
 	req_sender: &mpsc::Sender<RequesterMessage>,
 	metrics: &Metrics,
@@ -1315,7 +1314,7 @@ async fn handle_incoming_message<'a>(
 	peer: PeerId,
 	peer_data: &mut PeerData,
 	active_heads: &'a mut HashMap<Hash, ActiveHeadData>,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	message: protocol_v1::StatementDistributionMessage,
 	req_sender: &mpsc::Sender<RequesterMessage>,
 	metrics: &Metrics,
@@ -1462,7 +1461,7 @@ async fn update_peer_view_and_maybe_send_unlocked(
 	peer: PeerId,
 	gossip_peers: &HashSet<PeerId>,
 	peer_data: &mut PeerData,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	active_heads: &HashMap<Hash, ActiveHeadData>,
 	new_view: View,
 	metrics: &Metrics,
@@ -1506,7 +1505,7 @@ async fn handle_network_update(
 	gossip_peers: &mut HashSet<PeerId>,
 	authorities: &mut HashMap<AuthorityDiscoveryId, PeerId>,
 	active_heads: &mut HashMap<Hash, ActiveHeadData>,
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut overseer::SubsystemContext,
 	req_sender: &mpsc::Sender<RequesterMessage>,
 	update: NetworkBridgeEvent<protocol_v1::StatementDistributionMessage>,
 	metrics: &Metrics,
@@ -1599,7 +1598,7 @@ async fn handle_network_update(
 impl StatementDistribution {
 	async fn run(
 		self,
-		mut ctx: (impl SubsystemContext<Message = StatementDistributionMessage> + overseer::SubsystemContext<Message = StatementDistributionMessage>),
+		mut ctx: impl overseer::SubsystemContext<Message = StatementDistributionMessage>,
 	) -> std::result::Result<(), Fatal> {
 		let mut peers: HashMap<PeerId, PeerData> = HashMap::new();
 		let mut gossip_peers: HashSet<PeerId> = HashSet::new();
@@ -1831,7 +1830,7 @@ impl StatementDistribution {
 
 	async fn handle_subsystem_message(
 		&self,
-		ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+		ctx: &mut impl overseer::SubsystemContext,
 		runtime: &mut RuntimeInfo,
 		peers: &mut HashMap<PeerId, PeerData>,
 		gossip_peers: &mut HashSet<PeerId>,

@@ -162,7 +162,6 @@ impl BitfieldDistribution {
 	/// Start processing work as passed on from the Overseer.
 	async fn run<Context>(self, mut ctx: Context)
 	where
-		Context: SubsystemContext<Message = BitfieldDistributionMessage>,
 		Context: overseer::SubsystemContext<Message = BitfieldDistributionMessage>,
 	{
 		// work: process incoming messages from the overseer and process accordingly.
@@ -697,9 +696,8 @@ where
 	).await;
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for BitfieldDistribution
+impl<Context> overseer::overseer::Subsystem<Context> for BitfieldDistribution
 where
-	Context: SubsystemContext<Message = BitfieldDistributionMessage>,
 	Context: overseer::SubsystemContext<Message = BitfieldDistributionMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {

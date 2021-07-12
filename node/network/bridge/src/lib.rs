@@ -28,9 +28,8 @@ use polkadot_subsystem::messages::DisputeDistributionMessage;
 use sc_network::Event as NetworkEvent;
 use sp_consensus::SyncOracle;
 
-use polkadot_overseer::gen::{
+use polkadot_overseer::{
 	Subsystem,
-	OverseerError,
 };
 use polkadot_subsystem::{
 	overseer,
@@ -305,11 +304,11 @@ impl<N, AD> NetworkBridge<N, AD> {
 	}
 }
 
-impl<Net, AD, Context> Subsystem<Context, SubsystemError> for NetworkBridge<Net, AD>
+impl<Net, AD, Context> overseer::Subsystem<Context> for NetworkBridge<Net, AD>
 	where
 		Net: Network + Sync,
 		AD: validator_discovery::AuthorityDiscovery + Clone,
-		Context: SubsystemContext<Message = NetworkBridgeMessage> + overseer::SubsystemContext<Message = NetworkBridgeMessage>,
+		Context: overseer::SubsystemContext<Message = NetworkBridgeMessage>,
 {
 	fn start(mut self, ctx: Context) -> SpawnedSubsystem {
 		// The stream of networking events has to be created at initialization, otherwise the
@@ -351,12 +350,6 @@ impl From<SubsystemError> for UnexpectedAbort {
 	}
 }
 
-impl From<OverseerError> for UnexpectedAbort {
-	fn from(e: OverseerError) -> Self {
-		UnexpectedAbort::SubsystemError(SubsystemError::from(e))
-	}
-}
-
 #[derive(Default, Clone)]
 struct Shared(Arc<Mutex<SharedInner>>);
 
@@ -381,7 +374,6 @@ async fn handle_subsystem_messages<Context, N, AD>(
 	metrics: Metrics,
 ) -> Result<(), UnexpectedAbort>
 where
-	Context: SubsystemContext<Message = NetworkBridgeMessage>,
 	Context: overseer::SubsystemContext<Message = NetworkBridgeMessage>,
 	N: Network,
 	AD: validator_discovery::AuthorityDiscovery + Clone,
@@ -882,7 +874,7 @@ async fn run_network<N, AD, Context>(
 where
 	N: Network,
 	AD: validator_discovery::AuthorityDiscovery + Clone,
-	Context: SubsystemContext<Message=NetworkBridgeMessage> + overseer::SubsystemContext<Message=NetworkBridgeMessage>,
+	Context: overseer::SubsystemContext<Message=NetworkBridgeMessage>,
 {
 	let shared = Shared::default();
 

@@ -189,7 +189,7 @@ enum PendingMessage {
 impl State {
 	async fn handle_network_msg(
 		&mut self,
-		ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),
+		ctx: &mut impl overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
 		metrics: &Metrics,
 		event: NetworkBridgeEvent<protocol_v1::ApprovalDistributionMessage>,
 	) {
@@ -259,7 +259,8 @@ impl State {
 
 	async fn handle_new_blocks(
 		&mut self,
-		ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),		metrics: &Metrics,
+		ctx: &mut impl overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
+		metrics: &Metrics,
 		metas: Vec<BlockApprovalMeta>,
 	) {
 		let mut new_hashes = HashSet::new();
@@ -361,7 +362,8 @@ impl State {
 
 	async fn process_incoming_peer_message(
 		&mut self,
-		ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),		metrics: &Metrics,
+		ctx: &mut impl overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
+		metrics: &Metrics,
 		peer_id: PeerId,
 		msg: protocol_v1::ApprovalDistributionMessage,
 	) {
@@ -448,7 +450,8 @@ impl State {
 
 	async fn handle_peer_view_change(
 		&mut self,
-		ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),		metrics: &Metrics,
+		ctx: &mut impl overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
+		metrics: &Metrics,
 		peer_id: PeerId,
 		view: View,
 	) {
@@ -511,7 +514,8 @@ impl State {
 
 	async fn import_and_circulate_assignment(
 		&mut self,
-		ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),		metrics: &Metrics,
+		ctx: &mut impl overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
+		metrics: &Metrics,
 		source: MessageSource,
 		assignment: IndirectAssignmentCert,
 		claimed_candidate_index: CandidateIndex,
@@ -747,7 +751,8 @@ impl State {
 
 	async fn import_and_circulate_approval(
 		&mut self,
-		ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),		metrics: &Metrics,
+		ctx: &mut impl overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
+		metrics: &Metrics,
 		source: MessageSource,
 		vote: IndirectSignedApprovalVote,
 	) {
@@ -991,7 +996,7 @@ impl State {
 	}
 
 	async fn unify_with_peer(
-		ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),		gossip_peers: &HashSet<PeerId>,
+		ctx: &mut impl overseer::SubsystemContext<Message = ApprovalDistributionMessage>,		gossip_peers: &HashSet<PeerId>,
 		metrics: &Metrics,
 		entries: &mut HashMap<Hash, BlockEntry>,
 		peer_id: PeerId,
@@ -1056,7 +1061,8 @@ impl State {
 
 	async fn send_gossip_messages_to_peer(
 		entries: &HashMap<Hash, BlockEntry>,
-		ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),		peer_id: PeerId,
+		ctx: &mut mut overseer::SubsystemContext<Message = ApprovalDistributionMessage>),
+		peer_id: PeerId,
 		blocks: Vec<Hash>,
 	) {
 		let mut assignments = Vec::new();
@@ -1150,7 +1156,7 @@ impl State {
 
 /// Modify the reputation of a peer based on its behavior.
 async fn modify_reputation(
-	ctx: &mut (impl SubsystemContext<Message = ApprovalDistributionMessage> + overseer::SubsystemContext<Message = ApprovalDistributionMessage>),
+	ctx: &mut impl overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
 	peer_id: PeerId,
 	rep: Rep,
 ) {
@@ -1174,7 +1180,6 @@ impl ApprovalDistribution {
 
 	async fn run<Context>(self, ctx: Context)
 	where
-		Context: SubsystemContext<Message = ApprovalDistributionMessage>,
 		Context: overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
 	{
 		let mut state = State::default();
@@ -1184,7 +1189,6 @@ impl ApprovalDistribution {
 	/// Used for testing.
 	async fn run_inner<Context>(self, mut ctx: Context, state: &mut State)
 	where
-		Context: SubsystemContext<Message = ApprovalDistributionMessage>,
 		Context: overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
 	{
 		loop {
@@ -1258,9 +1262,8 @@ impl ApprovalDistribution {
 	}
 }
 
-impl<Context> overseer::Subsystem<Context, SubsystemError> for ApprovalDistribution
+impl<Context> overseer::overseer::Subsystem<Context> for ApprovalDistribution
 where
-	Context: SubsystemContext<Message = ApprovalDistributionMessage>,
 	Context: overseer::SubsystemContext<Message = ApprovalDistributionMessage>,
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {

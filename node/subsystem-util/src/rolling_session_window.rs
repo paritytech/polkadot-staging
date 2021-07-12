@@ -149,7 +149,7 @@ impl RollingSessionWindow {
 	/// some backwards drift in session index is acceptable.
 	pub async fn cache_session_info_for_head(
 		&mut self,
-		ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+		ctx: &mut impl overseer::SubsystemContext,
 		block_hash: Hash,
 		block_header: &Header,
 	) -> Result<SessionWindowUpdate, SessionsUnavailable> {
@@ -265,7 +265,7 @@ impl RollingSessionWindow {
 }
 
 async fn load_all_sessions(
-	ctx: &mut (impl SubsystemContext + overseer::SubsystemContext),
+	ctx: &mut impl overseer::SubsystemContext,
 	block_hash: Hash,
 	start: SessionIndex,
 	end_inclusive: SessionIndex,

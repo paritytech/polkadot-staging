@@ -103,6 +103,40 @@ pub use polkadot_node_network_protocol::WrongVariant;
 
 use std::fmt;
 
+/// Import just the right amount of types.
+pub mod prelude {
+	pub use crate::{
+		overlord,
+		async_trait,
+		ToOverseer,
+		Timeout,
+		TimeoutExt,
+		MapSubsystem,
+		MessagePacket,
+		SubsystemIncomingMessages,
+		OverseerError,
+		SubsystemMeters,
+		SubsystemMeterReadouts,
+		SpawnNamed,
+		Future,
+		Pin,
+		Duration,
+		make_packet,
+		Delay,
+		BoxFuture,
+		select,
+		StreamExt,
+		poll,
+		Poll,
+		stream,
+		SignalsReceived,
+		FutureExt,
+		metered,
+		futures,
+		oneshot,
+		FuturesUnordered,
+	};
+}
 
 #[cfg(test)]
 mod tests;
@@ -357,100 +391,6 @@ impl<Signal, Message> From<Signal> for FromOverseer<Message, Signal> {
 	}
 }
 
-/// A context type that is given to the [`Subsystem`] upon spawning.
-/// It can be used by [`Subsystem`] to communicate with other [`Subsystem`]s
-/// or spawn jobs.
-///
-/// [`Overseer`]: struct.Overseer.html
-/// [`SubsystemJob`]: trait.SubsystemJob.html
-#[async_trait::async_trait]
-pub trait SubsystemContext: Send + 'static {
-	/// The message type of this context. Subsystems launched with this context will expect
-	/// to receive messages of this type. Commonly uses the wrapping enum commonly called
-	/// `AllMessages`.
-	type Message: std::fmt::Debug + Send + 'static;
-	/// And the same for signals.
-	type Signal: std::fmt::Debug + Send + 'static;
-	/// The overarching all messages enum.
-	/// In some cases can be identical to `Self::Message`.
-	type AllMessages: From<Self::Message> + Send + 'static;
-	/// The sender type as provided by `sender()` and underlying.
-	type Sender: SubsystemSender<Self::AllMessages> + Send + 'static;
-	/// The error type.
-	type Error: ::std::error::Error + ::std::convert::From< OverseerError > + Sync + Send + 'static;
-
-	/// Try to asynchronously receive a message.
-	///
-	/// This has to be used with caution, if you loop over this without
-	/// using `pending!()` macro you will end up with a busy loop!
-	async fn try_recv(&mut self) -> Result<Option<FromOverseer<Self::Message, Self::Signal>>, ()>;
-
-	/// Receive a message.
-	async fn recv(&mut self) -> Result<FromOverseer<Self::Message, Self::Signal>, Self::Error>;
-
-	/// Spawn a child task on the executor.
-	fn spawn(
-		&mut self,
-		name: &'static str,
-		s: ::std::pin::Pin<Box<dyn crate::Future<Output = ()> + Send>>
-	) -> Result<(), Self::Error>;
-
-	/// Spawn a blocking child task on the executor's dedicated thread pool.
-	fn spawn_blocking(
-		&mut self,
-		name: &'static str,
-		s: ::std::pin::Pin<Box<dyn crate::Future<Output = ()> + Send>>,
-	) -> Result<(), Self::Error>;
-
-	/// Send a direct message to some other `Subsystem`, routed based on message type.
-	async fn send_message<X>(&mut self, msg: X)
-		where
-			Self::AllMessages: From<X>,
-			X: Send,
-	{
-		self.sender().send_message(<Self::AllMessages>::from(msg)).await
-	}
-
-	/// Send multiple direct messages to other `Subsystem`s, routed based on message type.
-	async fn send_messages<X, T>(&mut self, msgs: T)
-		where
-			T: IntoIterator<Item = X> + Send,
-			T::IntoIter: Send,
-			Self::AllMessages: From<X>,
-			X: Send,
-	{
-		self.sender().send_messages(msgs.into_iter().map(|x| <Self::AllMessages>::from(x))).await
-	}
-
-	/// Send a message using the unbounded connection.
-	fn send_unbounded_message<X>(&mut self, msg: X)
-	where
-		Self::AllMessages: From<X>,
-		X: Send,
-	{
-		self.sender().send_unbounded_message(Self::AllMessages::from(msg))
-	}
-
-	/// Obtain the sender.
-	fn sender(&mut self) -> &mut Self::Sender;
-}
-
-/// A trait that describes the [`Subsystem`]s that can run on the [`Overseer`].
-///
-/// It is generic over the message type circulating in the system.
-/// The idea that we want some type containing persistent state that
-/// can spawn actually running subsystems when asked.
-///
-/// [`Overseer`]: struct.Overseer.html
-/// [`Subsystem`]: trait.Subsystem.html
-pub trait Subsystem<Ctx, E>
-where
-	Ctx: SubsystemContext,
-	E: std::error::Error + Send + Sync + 'static + From<self::OverseerError>,
-{
-	/// Start this `Subsystem` and return `SpawnedSubsystem`.
-	fn start(self, ctx: Ctx) -> SpawnedSubsystem < E >;
-}
 
 
 /// Sender end of a channel to interface with a subsystem.

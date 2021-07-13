@@ -32,7 +32,7 @@ bp-wococo = { path = "../../primitives/chain-wococo" }
 bp-runtime = { path = "../../primitives/runtime" }
 bp-westend = { path = "../../primitives/chain-westend" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
-finality-grandpa = { version = "0.14.1" }
+finality-grandpa = { version = "0.14.1", }
 finality-relay = { path = "../finality" }
 headers-relay = { path = "../headers" }
 messages-relay = { path = "../messages" }

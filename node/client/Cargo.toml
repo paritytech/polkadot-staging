@@ -28,7 +28,7 @@ sc-service = { git = "https://github.com/paritytech/substrate", branch = "master
 
 pallet-mmr-primitives = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
-beefy-primitives = { git = "https://github.com/paritytech/grandpa-bridge-gadget", branch = "master" }
+beefy-primitives = { git = "https://github.com/paritytech/grandpa-bridge-gadget", branch = "aj-metadata-vnext" }
 
 # Polkadot Runtimes
 polkadot-runtime = { path = "../../runtime/polkadot" }

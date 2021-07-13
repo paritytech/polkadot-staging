@@ -23,6 +23,7 @@ use sp_std::prelude::*;
 use frame_support::RuntimeDebug;
 use pallet_mmr::primitives::LeafDataProvider;
 use parity_scale_codec::{Encode, Decode};
+use scale_info::TypeInfo;
 use runtime_parachains::paras;
 pub use pallet::*;
 
@@ -72,7 +73,7 @@ pub struct MmrLeaf<BlockNumber, Hash, MerkleRoot> {
 }
 
 /// Details of the next BEEFY authority set.
-#[derive(RuntimeDebug, Default, PartialEq, Eq, Clone, Encode, Decode)]
+#[derive(RuntimeDebug, Default, PartialEq, Eq, Clone, Encode, Decode, TypeInfo)]
 pub struct BeefyNextAuthoritySet<MerkleRoot> {
 	/// Id of the next set.
 	///

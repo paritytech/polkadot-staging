@@ -8,6 +8,7 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
 parity-scale-codec = { version = "2.0.0", default-features = false, features = ["derive"] }
+scale-info = { version = "0.9.1", default-features = false, features = ["derive"] }
 
 # Bridge Dependencies
 
@@ -35,6 +36,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"parity-scale-codec/std",
+	"scale-info/std",
 	"sp-api/std",
 	"sp-core/std",
 	"sp-runtime/std",

@@ -17,6 +17,7 @@
 //! Pallet to process purchase of DOTs.
 
 use parity_scale_codec::{Encode, Decode};
+use scale_info::TypeInfo;
 use sp_runtime::{Permill, RuntimeDebug, DispatchResult, DispatchError, AnySignature};
 use sp_runtime::traits::{Zero, CheckedAdd, Verify, Saturating};
 use frame_support::pallet_prelude::*;
@@ -31,7 +32,7 @@ pub use pallet::*;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 /// The kind of a statement an account needs to make for a claim to be valid.
-#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum AccountValidity {
 	/// Account is not valid.
 	Invalid,
@@ -67,7 +68,7 @@ impl AccountValidity {
 }
 
 /// All information about an account regarding the purchase of DOTs.
-#[derive(Encode, Decode, Default, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct AccountStatus<Balance> {
 	/// The current validity status of the user. Will denote if the user has passed KYC,
 	/// how much they are able to purchase, and when their purchase process has completed.
@@ -122,11 +123,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(
-		T::AccountId = "AccountId",
-		T::BlockNumber = "BlockNumber",
-		BalanceOf<T> = "Balance",
-	)]
 	pub enum Event<T: Config> {
 		/// A [new] account was created.
 		AccountCreated(T::AccountId),

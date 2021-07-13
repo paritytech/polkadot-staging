@@ -53,7 +53,7 @@ pub mod pallet {
 
 	/// Origin for the parachains.
 	#[pallet::origin]
-	#[derive(PartialEq, Eq, Clone, Encode, Decode, sp_core::RuntimeDebug)]
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, sp_core::RuntimeDebug, scale_info::TypeInfo)]
 	pub enum Origin {
 		/// It comes from a parachain.
 		Parachain(ParaId),

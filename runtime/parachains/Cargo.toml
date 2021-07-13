@@ -9,6 +9,7 @@ bitvec = { version = "0.20.1", default-features = false, features = ["alloc"] }
 parity-scale-codec = { version = "2.0.0", default-features = false, features = ["derive"] }
 log = { version = "0.4.14", default-features = false }
 rustc-hex = { version = "2.1.0", default-features = false }
+scale-info = { version = "0.9.1", default-features = false, features = ["derive"] }
 serde = { version = "1.0.123", features = [ "derive" ], optional = true }
 derive_more = "0.99.14"
 
@@ -65,6 +66,7 @@ std = [
 	"bitvec/std",
 	"parity-scale-codec/std",
 	"rustc-hex/std",
+	"scale-info/std",
 	"serde",
 	"primitives/std",
 	"inherents/std",

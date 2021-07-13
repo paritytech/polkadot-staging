@@ -9,7 +9,7 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0" }
-finality-grandpa = "0.14.0"
+finality-grandpa = "0.15.0"
 hash-db = "0.15.2"
 honggfuzz = "0.5.54"
 log = "0.4.0"

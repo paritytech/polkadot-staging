@@ -8,6 +8,7 @@ edition = "2018"
 [dependencies]
 impl-trait-for-tuples = "0.2.0"
 parity-scale-codec = { version = "2.0.0", default-features = false, features = [ "derive" ] }
+scale-info = { version = "0.9.1", default-features = false, features = ["derive"] }
 derivative = {version = "2.2.0", default-features = false, features = [ "use_core" ] }
 log = { version = "0.4.14", default-features = false }
 
@@ -16,4 +17,5 @@ default = ["std"]
 wasm-api = []
 std = [
 	"parity-scale-codec/std",
+	"scale-info/std",
 ]

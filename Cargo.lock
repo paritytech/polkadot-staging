@@ -492,10 +492,9 @@ dependencies = [
 [[package]]
 name = "beefy-gadget"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/grandpa-bridge-gadget?branch=master#4808f96849676024b156581485eae64f95133e97"
+source = "git+https://github.com/paritytech/grandpa-bridge-gadget?branch=aj-metadata-vnext#03ba4b6a77862df6a9dc6c5298d18292bfb462b3"
 dependencies = [
  "beefy-primitives",
- "fnv",
  "futures 0.3.15",
  "hex",
  "log",
@@ -521,7 +520,7 @@ dependencies = [
 [[package]]
 name = "beefy-gadget-rpc"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/grandpa-bridge-gadget?branch=master#4808f96849676024b156581485eae64f95133e97"
+source = "git+https://github.com/paritytech/grandpa-bridge-gadget?branch=aj-metadata-vnext#03ba4b6a77862df6a9dc6c5298d18292bfb462b3"
 dependencies = [
  "beefy-gadget",
  "beefy-primitives",
@@ -542,9 +541,10 @@ dependencies = [
 [[package]]
 name = "beefy-primitives"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/grandpa-bridge-gadget?branch=master#4808f96849676024b156581485eae64f95133e97"
+source = "git+https://github.com/paritytech/grandpa-bridge-gadget?branch=aj-metadata-vnext#03ba4b6a77862df6a9dc6c5298d18292bfb462b3"
 dependencies = [
  "parity-scale-codec",
+ "scale-info",
  "sp-api",
  "sp-application-crypto",
  "sp-core",
@@ -728,6 +728,7 @@ dependencies = [
  "finality-grandpa",
  "frame-support",
  "parity-scale-codec",
+ "scale-info",
  "serde",
  "sp-core",
  "sp-finality-grandpa",
@@ -769,6 +770,7 @@ dependencies = [
  "frame-system",
  "hex",
  "parity-scale-codec",
+ "scale-info",
  "sp-api",
  "sp-core",
  "sp-runtime",
@@ -1917,9 +1919,8 @@ dependencies = [
 
 [[package]]
 name = "finality-grandpa"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74a1bfdcc776e63e49f741c7ce6116fa1b887e8ac2e3ccb14dd4aa113e54feb9"
+version = "0.14.3"
+source = "git+https://github.com/paritytech/finality-grandpa?branch=aj-scale-info#e7cdb8781c51f2f02d1dc24de5b50f811be1309f"
 dependencies = [
  "either",
  "futures 0.3.15",
@@ -1928,6 +1929,7 @@ dependencies = [
  "num-traits",
  "parity-scale-codec",
  "parking_lot 0.11.1",
+ "scale-info",
 ]
 
 [[package]]
@@ -3369,6 +3371,7 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "rustc-hex",
+ "scale-info",
  "separator",
  "serde",
  "serde_derive",
@@ -4677,13 +4680,14 @@ dependencies = [
 [[package]]
 name = "pallet-beefy"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/grandpa-bridge-gadget?branch=master#4808f96849676024b156581485eae64f95133e97"
+source = "git+https://github.com/paritytech/grandpa-bridge-gadget?branch=aj-metadata-vnext#03ba4b6a77862df6a9dc6c5298d18292bfb462b3"
 dependencies = [
  "beefy-primitives",
  "frame-support",
  "frame-system",
  "pallet-session",
  "parity-scale-codec",
+ "scale-info",
  "serde",
  "sp-runtime",
  "sp-std",
@@ -4734,6 +4738,7 @@ dependencies = [
  "log",
  "num-traits",
  "parity-scale-codec",
+ "scale-info",
  "serde",
  "sp-finality-grandpa",
  "sp-io",
@@ -5334,6 +5339,7 @@ dependencies = [
  "frame-system",
  "log",
  "parity-scale-codec",
+ "scale-info",
  "serde",
  "sp-runtime",
  "sp-std",
@@ -5939,6 +5945,7 @@ version = "0.9.8"
 dependencies = [
  "parity-scale-codec",
  "parity-util-mem",
+ "scale-info",
  "sp-core",
  "sp-runtime",
  "sp-std",
@@ -6588,6 +6595,7 @@ dependencies = [
  "parity-scale-codec",
  "parity-util-mem",
  "polkadot-core-primitives",
+ "scale-info",
  "serde",
  "sp-core",
  "sp-runtime",
@@ -6606,6 +6614,7 @@ dependencies = [
  "polkadot-core-primitives",
  "polkadot-parachain",
  "pretty_assertions 0.7.2",
+ "scale-info",
  "serde",
  "sp-api",
  "sp-application-crypto",
@@ -6710,6 +6719,7 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-common",
  "rustc-hex",
+ "scale-info",
  "separator",
  "serde",
  "serde_derive",
@@ -6770,6 +6780,7 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-parachains",
  "rustc-hex",
+ "scale-info",
  "serde",
  "serde_derive",
  "serde_json",
@@ -6822,6 +6833,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "rustc-hex",
  "sc-keystore",
+ "scale-info",
  "serde",
  "serde_json",
  "sp-api",
@@ -7899,6 +7911,7 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
+ "scale-info",
  "serde",
  "serde_derive",
  "smallvec 1.6.1",
@@ -9088,6 +9101,31 @@ dependencies = [
  "sp-blockchain",
  "sp-runtime",
  "thiserror",
+]
+
+[[package]]
+name = "scale-info"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0af18b6ba34ebe0429199eb77e64f04c98508b8afb420aaac8fc187bb1c8ff02"
+dependencies = [
+ "bitvec",
+ "cfg-if 1.0.0",
+ "derive_more",
+ "parity-scale-codec",
+ "scale-info-derive",
+]
+
+[[package]]
+name = "scale-info-derive"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "113a247fe47d242d24f4795cbc069d0a168a70da9e1cff98b5645edcc21f1eed"
+dependencies = [
+ "proc-macro-crate 1.0.0",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -11957,6 +11995,7 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "rustc-hex",
+ "scale-info",
  "serde",
  "serde_derive",
  "serde_json",
@@ -12100,6 +12139,7 @@ dependencies = [
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]

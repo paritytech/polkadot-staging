@@ -33,6 +33,7 @@ use frame_support::{
 };
 use parity_scale_codec::{Encode, Decode};
 use bitvec::{order::Lsb0 as BitOrderLsb0, vec::BitVec};
+use scale_info::TypeInfo;
 use sp_runtime::{DispatchError, traits::{One, Saturating}};
 
 use crate::{configuration, paras, dmp, ump, hrmp, shared, scheduler::CoreAssignment};
@@ -42,7 +43,7 @@ use crate::{configuration, paras, dmp, ump, hrmp, shared, scheduler::CoreAssignm
 ///
 /// The bitfield's signature should be checked at the point of submission. Afterwards it can be
 /// dropped.
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, TypeInfo)]
 #[cfg_attr(test, derive(Debug))]
 pub struct AvailabilityBitfieldRecord<N> {
 	bitfield: AvailabilityBitfield, // one bit per core.
@@ -50,7 +51,7 @@ pub struct AvailabilityBitfieldRecord<N> {
 }
 
 /// A backed candidate pending availability.
-#[derive(Encode, Decode, PartialEq)]
+#[derive(Encode, Decode, PartialEq, TypeInfo)]
 #[cfg_attr(test, derive(Debug))]
 pub struct CandidatePendingAvailability<H, N> {
 	/// The availability core this is assigned to.

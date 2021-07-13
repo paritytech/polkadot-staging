@@ -8,12 +8,14 @@ edition = "2018"
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+scale-info = { version = "0.9.1", default-features = false, features = ["derive"] }
 parity-scale-codec = { version = "2.0.0", default-features = false, features = [ "derive" ] }
 parity-util-mem = { version = "0.10.0", default-features = false, optional = true }
 
 [features]
 default = [ "std" ]
 std = [
+	"scale-info/std",
 	"sp-core/std",
 	"sp-runtime/std",
 	"sp-std/std",

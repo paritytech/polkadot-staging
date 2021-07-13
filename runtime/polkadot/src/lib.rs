@@ -810,7 +810,7 @@ impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime where Call: 
 
 parameter_types! {
 	pub const ParathreadDeposit: Balance = 500 * DOLLARS;
-	pub const QueueSize: usize = 2;
+	// pub const QueueSize: usize = 2; // TODO: [AJ] this is apparently unused, can we remove?
 	pub const MaxRetries: u32 = 3;
 }
 
@@ -875,7 +875,10 @@ parameter_types! {
 }
 
 /// The type used to represent the kinds of proxying allowed.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(
+	Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen,
+	scale_info::TypeInfo,
+)]
 pub enum ProxyType {
 	Any = 0,
 	NonTransfer = 1,
@@ -1129,7 +1132,7 @@ sp_api::impl_runtime_apis! {
 
 	impl sp_api::Metadata<Block> for Runtime {
 		fn metadata() -> OpaqueMetadata {
-			Runtime::metadata().into()
+			OpaqueMetadata::new(Runtime::metadata().into())
 		}
 	}
 

@@ -15,6 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use parity_scale_codec::{Encode, Decode};
+use scale_info::TypeInfo;
 
 use sp_std::prelude::Vec;
 #[cfg(feature = "std")]
@@ -41,7 +42,7 @@ use crate::v0::{SigningContext, ValidatorId, ValidatorSignature, ValidatorIndex}
 pub struct Signed<Payload, RealPayload = Payload>(UncheckedSigned<Payload, RealPayload>);
 
 /// Unchecked signed data, can be converted to `Signed` by checking the signature.
-#[derive(Clone, PartialEq, Eq, RuntimeDebug, Encode, Decode)]
+#[derive(Clone, PartialEq, Eq, RuntimeDebug, Encode, Decode, TypeInfo)]
 pub struct UncheckedSigned<Payload, RealPayload = Payload> {
 	/// The payload is part of the signed data. The rest is the signing context,
 	/// which is known both at signing and at validation.

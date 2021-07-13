@@ -9,7 +9,7 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0" }
 ethereum-types = "0.11.0"
-finality-grandpa = "0.14.1"
+finality-grandpa = "0.15.0"
 hex = "0.4"
 log = "0.4.14"
 

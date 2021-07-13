@@ -18,9 +18,10 @@
 
 use alloc::vec::Vec;
 use parity_scale_codec::{self, Encode, Decode};
+use scale_info::TypeInfo;
 
 /// A global identifier of an account-bearing consensus system.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug, TypeInfo)]
 pub enum NetworkId {
 	/// Unidentified/any.
 	Any,
@@ -33,7 +34,7 @@ pub enum NetworkId {
 }
 
 /// An identifier of a pluralistic body.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug, TypeInfo)]
 pub enum BodyId {
 	/// The only body in its context.
 	Unit,
@@ -55,7 +56,7 @@ pub enum BodyId {
 }
 
 /// A part of a pluralistic body.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug, TypeInfo)]
 pub enum BodyPart {
 	/// The body's declaration, under whatever means it decides.
 	Voice,
@@ -84,7 +85,7 @@ impl BodyPart {
 /// A single item in a path to describe the relative location of a consensus system.
 ///
 /// Each item assumes a pre-existing location as its context and is defined in terms of it.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug, TypeInfo)]
 pub enum Junction {
 	/// The consensus system of which the context is a member and state-wise super-set.
 	///

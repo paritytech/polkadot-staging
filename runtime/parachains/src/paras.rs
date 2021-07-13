@@ -32,6 +32,7 @@ use sp_runtime::{traits::One, DispatchResult, SaturatedConversion};
 use frame_system::pallet_prelude::*;
 use frame_support::pallet_prelude::*;
 use parity_scale_codec::{Encode, Decode};
+use scale_info::TypeInfo;
 use crate::{configuration, shared, initializer::SessionChangeNotification};
 use sp_core::RuntimeDebug;
 
@@ -43,7 +44,7 @@ pub use crate::Origin as ParachainOrigin;
 pub use pallet::*;
 
 // the two key times necessary to track for every code replacement.
-#[derive(Default, Encode, Decode)]
+#[derive(Default, Encode, Decode, TypeInfo)]
 #[cfg_attr(test, derive(Debug, Clone, PartialEq))]
 pub struct ReplacementTimes<N> {
 	/// The relay-chain block number that the code upgrade was expected to be activated.
@@ -58,7 +59,7 @@ pub struct ReplacementTimes<N> {
 
 /// Metadata used to track previous parachain validation code that we keep in
 /// the state.
-#[derive(Default, Encode, Decode)]
+#[derive(Default, Encode, Decode, TypeInfo)]
 #[cfg_attr(test, derive(Debug, Clone, PartialEq))]
 pub struct ParaPastCodeMeta<N> {
 	/// Block numbers where the code was expected to be replaced and where the code
@@ -87,7 +88,7 @@ enum UseCodeAt<N> {
 /// If the para is in a "transition state", it is expected that the parachain is
 /// queued in the `ActionsQueue` to transition it into a stable state. Its lifecycle
 /// state will be used to determine the state transition to apply to the para.
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ParaLifecycle {
 	/// Para is new and is onboarding as a Parathread or Parachain.
 	Onboarding,
@@ -251,7 +252,7 @@ impl<N: Ord + Copy + PartialEq> ParaPastCodeMeta<N> {
 }
 
 /// Arguments for initializing a para.
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct ParaGenesisArgs {
 	/// The initial head data to use.

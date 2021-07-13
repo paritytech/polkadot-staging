@@ -213,7 +213,7 @@ pub type AdditionalSigned = (u32, u32, Hash, Hash, (), (), ());
 
 /// A simplified version of signed extensions meant for producing signed transactions
 /// and signed payload in the client code.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, scale_info::TypeInfo)]
 pub struct SignedExtensions<Call> {
 	encode_payload: SignedExtra,
 	additional_signed: AdditionalSigned,
@@ -266,7 +266,8 @@ impl<Call> SignedExtensions<Call> {
 
 impl<Call> sp_runtime::traits::SignedExtension for SignedExtensions<Call>
 where
-	Call: parity_scale_codec::Codec + sp_std::fmt::Debug + Sync + Send + Clone + Eq + PartialEq,
+	Call: parity_scale_codec::Codec + sp_std::fmt::Debug + Sync + Send + Clone + Eq + PartialEq
+		+ scale_info::StaticTypeInfo,
 	Call: Dispatchable,
 {
 	const IDENTIFIER: &'static str = "Not needed.";

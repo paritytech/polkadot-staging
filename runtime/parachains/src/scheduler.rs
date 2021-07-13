@@ -46,12 +46,13 @@ use frame_support::{
 	weights::Weight,
 };
 use parity_scale_codec::{Encode, Decode};
+use scale_info::TypeInfo;
 use sp_runtime::traits::{One, Saturating};
 
 use crate::{configuration, paras, initializer::SessionChangeNotification};
 
 /// A queued parathread entry, pre-assigned to a core.
-#[derive(Encode, Decode, Default)]
+#[derive(Encode, Decode, Default, TypeInfo)]
 #[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct QueuedParathread {
 	claim: ParathreadEntry,
@@ -59,7 +60,7 @@ pub struct QueuedParathread {
 }
 
 /// The queue of all parathread claims.
-#[derive(Encode, Decode, Default)]
+#[derive(Encode, Decode, Default, TypeInfo)]
 #[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct ParathreadClaimQueue {
 	queue: Vec<QueuedParathread>,
@@ -104,7 +105,7 @@ pub enum FreedReason {
 
 
 /// The assignment type.
-#[derive(Clone, Encode, Decode)]
+#[derive(Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(PartialEq, Debug))]
 pub enum AssignmentKind {
 	/// A parachain.
@@ -114,7 +115,7 @@ pub enum AssignmentKind {
 }
 
 /// How a free core is scheduled to be assigned.
-#[derive(Clone, Encode, Decode)]
+#[derive(Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(PartialEq, Debug))]
 pub struct CoreAssignment {
 	/// The core that is assigned.

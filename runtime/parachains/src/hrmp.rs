@@ -20,6 +20,7 @@ use crate::{
 	initializer, paras, dmp,
 };
 use parity_scale_codec::{Decode, Encode};
+use scale_info::TypeInfo;
 use frame_support::{
 	decl_storage, decl_module, decl_error, decl_event, ensure, traits::{Get, ReservableCurrency},
 	weights::Weight, StorageMap, StorageValue, dispatch::DispatchResult,
@@ -37,7 +38,7 @@ use sp_std::{
 };
 
 /// A description of a request to open an HRMP channel.
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, TypeInfo)]
 pub struct HrmpOpenChannelRequest {
 	/// Indicates if this request was confirmed by the recipient.
 	pub confirmed: bool,
@@ -54,7 +55,7 @@ pub struct HrmpOpenChannelRequest {
 }
 
 /// A metadata of an HRMP channel.
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, TypeInfo)]
 #[cfg_attr(test, derive(Debug))]
 pub struct HrmpChannel {
 	// NOTE: This structure is used by parachains via merkle proofs. Therefore, this struct requires

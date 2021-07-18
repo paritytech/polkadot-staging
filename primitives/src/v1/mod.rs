@@ -178,8 +178,41 @@ pub mod well_known_keys {
 				.collect()
 		})
 	}
-}
 
+	/// The signal that indicates whether the parachain should go-ahead with the proposed validation
+	/// code upgrade.
+	///
+	/// The storage entry stores a value of `UpgradeGoAhead` type.
+	pub fn upgrade_go_ahead_signal(para_id: Id) -> Vec<u8> {
+		let prefix = hex!["cd710b30bd2eab0352ddcc26417aa1949e94c040f5e73d9b7addd6cb603d15d3"];
+
+		para_id.using_encoded(|para_id: &[u8]| {
+			prefix.as_ref()
+				.iter()
+				.chain(twox_64(para_id).iter())
+				.chain(para_id.iter())
+				.cloned()
+				.collect()
+		})
+	}
+
+	/// The signal that indicates whether the parachain is disallowed to signal an upgrade at this
+	/// relay-parent.
+	///
+	/// The storage entry stores a value of `UpgradeRestriction` type.
+	pub fn upgrade_restriction_signal(para_id: Id) -> Vec<u8> {
+		let prefix = hex!["cd710b30bd2eab0352ddcc26417aa194f27bbb460270642b5bcaf032ea04d56a"];
+
+		para_id.using_encoded(|para_id: &[u8]| {
+			prefix.as_ref()
+				.iter()
+				.chain(twox_64(para_id).iter())
+				.chain(para_id.iter())
+				.cloned()
+				.collect()
+		})
+	}
+}
 
 /// Unique identifier for the Parachains Inherent
 pub const PARACHAINS_INHERENT_IDENTIFIER: InherentIdentifier = *b"parachn0";
@@ -1010,6 +1043,38 @@ pub struct AbridgedHrmpChannel {
 	/// This value is initialized to a special value that consists of all zeroes which indicates
 	/// that no messages were previously added.
 	pub mqc_head: Option<Hash>,
+}
+
+/// A possible upgrade restriction that prevents a parachain from performing an upgrade.
+#[derive(Encode, Decode, PartialEq, RuntimeDebug)]
+pub enum UpgradeRestriction {
+	/// There is an upgrade restriction and there are no details about its specifics nor how long
+	/// it could last.
+	#[codec(index = 0)]
+	Present,
+}
+
+/// A struct that the relay-chain communicates to a parachain indicating what course of action the
+/// parachain should take in the coordinated parachain validation code upgrade process.
+///
+/// This data type appears in the last step of the upgrade process. After the parachain observes it
+/// and reacts to it the upgrade process concludes.
+#[derive(Encode, Decode, PartialEq, RuntimeDebug)]
+pub enum UpgradeGoAhead {
+	/// Abort the upgrade process. There is something wrong with the validation code previously
+	/// submitted by the parachain. This variant can also be used to prevent upgrades by the governance
+	/// should an emergency emerge.
+	///
+	/// The expected reaction on this variant is that the parachain will admit this message and
+	/// remove all the data about the pending upgrade. Depending on the nature of the problem (to
+	/// be examined offchain for now), it can try to send another validation code or just retry later.
+	#[codec(index = 0)]
+	Abort,
+	/// Apply the pending code change. The parablock that is built on a relay-parent that is descendant
+	/// of the relay-parent where the parachain observed this signal must use the upgraded validation
+	/// code.
+	#[codec(index = 1)]
+	GoAhead,
 }
 
 /// Consensus engine id for polkadot v1 consensus engine.

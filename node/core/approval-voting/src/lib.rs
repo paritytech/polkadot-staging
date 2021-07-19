@@ -86,9 +86,6 @@ use crate::backend::{Backend, OverlayedBackend};
 #[cfg(test)]
 mod tests;
 
-#[cfg(test)]
-mod old_tests;
-
 const APPROVAL_SESSIONS: SessionIndex = 6;
 const APPROVAL_CHECKING_TIMEOUT: Duration = Duration::from_secs(120);
 const APPROVAL_CACHE_SIZE: usize = 1024;

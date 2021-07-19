@@ -54,7 +54,7 @@ fn purge_chain_works() {
 		.unwrap();
 	assert!(status.success());
 
-	// Make sure that the `dev` chain folder exists, but the `db` is deleted.
-	assert!(tmpdir.path().join("chains/dev/").exists());
-	assert!(!tmpdir.path().join("chains/dev/db").exists());
+	// Make sure that the chain folder exists, but `db/full` is deleted.
+	assert!(tmpdir.path().join("chains/dev").exists());
+	assert!(!tmpdir.path().join("chains/dev/db/full").exists());
 }

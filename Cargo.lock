@@ -7977,6 +7977,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "remote-ext-tests"
+version = "0.9.8"
+dependencies = [
+ "frame-support 3.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "kusama-runtime",
+ "log",
+ "pallet-staking 3.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "polkadot-runtime",
+ "remote-externalities",
+ "sp-runtime 3.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-storage 3.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-tracing 3.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "tokio 0.2.21",
+]
+
+[[package]]
 name = "remote-externalities"
 version = "0.9.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#d3db3c1d1011983ba7565e342910a6d2095625c8"

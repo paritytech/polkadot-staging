@@ -1,0 +1,24 @@
+[package]
+name = "remote-ext-tests"
+version = "0.9.8"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2018"
+
+[dependencies]
+polkadot-runtime = { version = "0.9.8", path = "../../runtime/polkadot", optional = true }
+kusama-runtime = { version = "0.9.8", path = "../../runtime/kusama", optional = true }
+
+pallet-staking = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-storage = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-tracing = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
+remote-externalities = { git = "https://github.com/paritytech/substrate", branch = "master" }
+
+tokio = { version = "0.2", features = ["macros", "rt-threaded"] }
+log = { version = "0.4.14" }
+
+[features]
+default = ["polkadot"]
+polkadot = ["polkadot-runtime"]
+kusama = ["kusama-runtime"]

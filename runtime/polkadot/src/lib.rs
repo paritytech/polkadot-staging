@@ -345,10 +345,9 @@ parameter_types! {
 		sp_runtime::FixedU128::saturating_from_rational(12, 10),
 		// maximum weight possible.
 		weights::pallet_election_provider_multi_phase::WeightInfo::<Runtime>::submit(SignedMaxSubmissions::get()),
-		// assume a solution of 200kb length.
-		200 * 1024
+		// assume a solution of 80kb length.
+		80 * 1024
 	);
-
 	// fallback: emergency phase.
 	pub const Fallback: pallet_election_provider_multi_phase::FallbackStrategy =
 		pallet_election_provider_multi_phase::FallbackStrategy::Nothing;
@@ -1594,5 +1593,15 @@ mod test_fees {
 
 		println!("can support {} nominators to yield a weight of {}", active, weight_with(active));
 		assert!(active > target_voters, "we need to reevaluate the weight of the election system");
+	}
+
+	#[test]
+	fn election_provider_signed_reward_base_is_as_expected() {
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			assert_eq!(
+				<Runtime as pallet_election_provider_multi_phase::Config>::SignedRewardBase::get(),
+				98_362_454_400u64.into()
+			);
+		});
 	}
 }

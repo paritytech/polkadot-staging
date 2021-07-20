@@ -167,3 +167,13 @@ fn era_payout_should_give_sensible_results() {
 		0,
 	), (6, 4));
 }
+
+#[test]
+fn election_provider_signed_reward_base_is_as_expected() {
+	sp_io::TestExternalities::new_empty().execute_with(|| {
+		assert_eq!(
+			<Runtime as pallet_election_provider_multi_phase::Config>::SignedRewardBase::get(),
+			8_205_631_934u64.into()
+		);
+	});
+}

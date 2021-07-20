@@ -365,8 +365,8 @@ parameter_types! {
 		sp_runtime::FixedU128::saturating_from_rational(12, 10),
 		// maximum weight possible.
 		weights::pallet_election_provider_multi_phase::WeightInfo::<Runtime>::submit(SignedMaxSubmissions::get()),
-		// assume a solution of 100kb length.
-		100 * 1024
+		// assume a solution of 20k length.
+		20 * 1024
 	);
 
 	// fallback: emergency phase.

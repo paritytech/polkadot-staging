@@ -66,6 +66,13 @@ Frozen: Option<BlockNumber>,
 
 ## Routines
 
+* `filter_multi_dispute_data(MultiDisputeStatementSet) -> MultiDisputeStatementSet`:
+  1. Takes a `MultiDisputeStatementSet` and filters it down to a `MultiDisputeStatementSet`
+    that satisfies all the criteria of `provide_multi_dispute_data`. That is, eliminating
+    ancient votes, votes which overwhelm the maximum amount of spam slots, and duplicates. 
+    This can be used by block authors to create the final submission in a block which is 
+    guaranteed to pass the `provide_multi_dispute_data` checks.
+
 * `provide_multi_dispute_data(MultiDisputeStatementSet) -> Vec<(SessionIndex, Hash)>`:
   1. Pass on each dispute statement set to `provide_dispute_data`, propagating failure.
   1. Return a list of all candidates who just had disputes initiated.

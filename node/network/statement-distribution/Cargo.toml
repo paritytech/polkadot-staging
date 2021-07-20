@@ -17,7 +17,7 @@ polkadot-node-primitives = { path = "../../primitives" }
 polkadot-node-subsystem-util = { path = "../../subsystem-util" }
 polkadot-node-network-protocol = { path = "../../network/protocol" }
 arrayvec = "0.5.2"
-indexmap = "1.6.1"
+indexmap = "1.7.0"
 parity-scale-codec = { version = "2.0.0", default-features = false, features = ["derive"] }
 thiserror = "1.0.23"
 

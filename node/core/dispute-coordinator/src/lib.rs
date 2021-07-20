@@ -35,7 +35,7 @@ use polkadot_node_subsystem::{
 	errors::{ChainApiError, RuntimeApiError},
 	messages::{
 		ChainApiMessage, DisputeCoordinatorMessage, DisputeDistributionMessage,
-		DisputeParticipationMessage, ImportStatementsResult
+		DisputeParticipationMessage, ImportStatementsResult, BlockDescription,
 	}
 };
 use polkadot_node_subsystem_util::rolling_session_window::{
@@ -836,14 +836,17 @@ fn make_dispute_message(
 	).map_err(MakeDisputeMessageError::InvalidStatementCombination)
 }
 
+/// Determine the the best block and its block number.
+/// Assumes `block_descriptions` are sorted from the one
+/// with the lowest `BlockNumber` to the highest.
 fn determine_undisputed_chain(
 	overlay_db: &mut OverlayedBackend<'_, impl Backend>,
 	base_number: BlockNumber,
-	block_descriptions: Vec<(Hash, SessionIndex, Vec<CandidateHash>)>,
+	block_descriptions: Vec<BlockDescription>,
 ) -> Result<Option<(BlockNumber, Hash)>, Error> {
 	let last = block_descriptions.last()
 
-		.map(|e| (base_number + block_descriptions.len() as BlockNumber, e.0));
+		.map(|e| (base_number + block_descriptions.len() as BlockNumber, e.block_hash));
 
 	// Fast path for no disputes.
 	let recent_disputes = match overlay_db.load_recent_disputes()? {
@@ -859,14 +862,14 @@ fn determine_undisputed_chain(
 		)
 	};
 
-	for (i, (_, session, candidates)) in block_descriptions.iter().enumerate() {
+	for (i, BlockDescription { session, candidates, .. }) in block_descriptions.iter().enumerate() {
 		if candidates.iter().any(|c| is_possibly_invalid(*session, *c)) {
 			if i == 0 {
 				return Ok(None);
 			} else {
 				return Ok(Some((
 					base_number + i as BlockNumber,
-					block_descriptions[i - 1].0,
+					block_descriptions[i - 1].block_hash,
 				)));
 			}
 		}

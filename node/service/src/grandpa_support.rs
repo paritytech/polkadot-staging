@@ -25,7 +25,7 @@ use sp_runtime::traits::Header as _;
 #[cfg(feature = "full-node")]
 use {
 	polkadot_primitives::v1::{Hash, Block as PolkadotBlock, Header as PolkadotHeader},
-	polkadot_subsystem::messages::ApprovalVotingMessage,
+	polkadot_subsystem::messages::{ApprovalVotingMessage, HighestApprovedAncestorBlock},
 	prometheus_endpoint::{self, Registry},
 	polkadot_overseer::Handle,
 	futures::channel::oneshot,
@@ -139,7 +139,10 @@ impl<B> grandpa::VotingRule<PolkadotBlock, B> for ApprovalCheckingVotingRule
 					std::any::type_name::<Self>(),
 				).await;
 
-				rx.await.ok().and_then(|v| v)
+				rx.await
+					.ok()
+					.and_then(|v| v)
+					.map(|HighestApprovedAncestorBlock { hash, number, .. }| (hash, number))
 			};
 
 			let approval_checking_subsystem_lag = approval_checking_subsystem_vote.map_or(
@@ -152,10 +155,9 @@ impl<B> grandpa::VotingRule<PolkadotBlock, B> for ApprovalCheckingVotingRule
 			}
 
 			let min_vote = {
-				let diff = best_number.saturating_sub(base_number);
-				if diff >= MAX_APPROVAL_CHECKING_FINALITY_LAG {
+				if best_number.checked_sub(base_number + MAX_APPROVAL_CHECKING_FINALITY_LAG).is_some() {
 					// Catch up to the best, with some extra lag.
-					let target_number = best_number - MAX_APPROVAL_CHECKING_FINALITY_LAG;
+					let target_number = best_number.saturating_sub(MAX_APPROVAL_CHECKING_FINALITY_LAG);
 					if target_number >= current_number {
 						Some((current_hash, current_number))
 					} else {

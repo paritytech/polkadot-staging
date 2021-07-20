@@ -39,7 +39,7 @@ use {
 	polkadot_primitives::v1::{
 		Hash, BlockNumber, Block as PolkadotBlock, Header as PolkadotHeader,
 	},
-	polkadot_subsystem::messages::{ApprovalVotingMessage, ChainSelectionMessage},
+	polkadot_subsystem::messages::{ApprovalVotingMessage, HighestApprovedAncestorBlock, ChainSelectionMessage, DisputeCoordinatorMessage},
 	polkadot_node_subsystem_util::metrics::{self, prometheus},
 	polkadot_overseer::Handle,
 	futures::channel::oneshot,
@@ -321,7 +321,7 @@ impl<B> SelectChain<PolkadotBlock> for SelectRelayChain<B>
 		let initial_leaf_number = self.block_number(initial_leaf)?;
 
 		// 2. Constrain according to `ApprovedAncestor`.
-		let (subchain_head, subchain_number) = {
+		let (subchain_head, subchain_number, subchain_block_descriptions) = {
 
 			let (tx, rx) = oneshot::channel();
 			overseer.send_msg(
@@ -338,17 +338,45 @@ impl<B> SelectChain<PolkadotBlock> for SelectRelayChain<B>
 				.map_err(|e| ConsensusError::Other(Box::new(e)))?
 			{
 				// No approved ancestors means target hash is maximal vote.
-				None => (target_hash, target_number),
-				Some((s_h, s_n)) => (s_h, s_n),
+				None => (target_hash, target_number, Vec::new()),
+				Some(HighestApprovedAncestorBlock {
+					number, hash, descriptions
+				}) => (hash, number, descriptions),
 			}
 		};
+
+		// Prevent sending flawed data to the dispute-coordinator.
+		if Some(subchain_block_descriptions.len() as _) != subchain_number.checked_sub(target_number) {
+			tracing::error!(
+				LOG_TARGET,
+				present_block_descriptions = subchain_block_descriptions.len(),
+				target_number,
+				subchain_number,
+				"Mismatch of anticipated block descriptions and block number difference.",
+			);
+			return Ok(Some(target_hash));
+		}
 
 		let lag = initial_leaf_number.saturating_sub(subchain_number);
 		self.metrics.note_approval_checking_finality_lag(lag);
 
 		// 3. Constrain according to disputes:
-		// TODO: https://github.com/paritytech/polkadot/issues/3164
-		self.metrics.note_disputes_finality_lag(0);
+		let (tx, rx) = oneshot::channel();
+		overseer.send_msg(DisputeCoordinatorMessage::DetermineUndisputedChain{
+				base_number: target_number,
+				block_descriptions: subchain_block_descriptions,
+				tx,
+			},
+			std::any::type_name::<Self>(),
+		).await;
+		let (subchain_number, subchain_head) = rx.await
+			.map_err(Error::OverseerDisconnected)
+			.map_err(|e| ConsensusError::Other(Box::new(e)))?
+			.unwrap_or_else(|| (subchain_number, subchain_head));
+
+		// The the total lag accounting for disputes.
+		let lag_disputes = initial_leaf_number.saturating_sub(subchain_number);
+		self.metrics.note_disputes_finality_lag(lag_disputes);
 
 		// 4. Apply the maximum safeguard to the finality lag.
 		if lag > MAX_FINALITY_LAG {

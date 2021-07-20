@@ -26,7 +26,7 @@ use polkadot_node_primitives::approval::{
 	RELAY_VRF_MODULO_CONTEXT, DelayTranche,
 };
 use polkadot_node_subsystem_test_helpers::make_subsystem_context;
-use polkadot_node_subsystem::messages::AllMessages;
+use polkadot_node_subsystem::messages::{AllMessages, HighestApprovedAncestorBlock};
 use sp_core::testing::TaskExecutor;
 
 use parking_lot::Mutex;
@@ -1612,10 +1612,12 @@ fn approved_ancestor_all_approved() {
 
 	let test_fut = Box::pin(async move {
 		let overlay_db = OverlayedBackend::new(&db);
-		assert_eq!(
+		assert_matches!(
 			handle_approved_ancestor(&mut ctx, &overlay_db, block_hash_4, 0, &Default::default())
-				.await.unwrap(),
-			Some((block_hash_4, 4)),
+				.await,
+			Ok(Some(HighestApprovedAncestorBlock { hash, number, .. } )) => {
+				assert_eq!((block_hash_4, 4), (hash, number));
+			}
 		)
 	});
 
@@ -1686,10 +1688,12 @@ fn approved_ancestor_missing_approval() {
 
 	let test_fut = Box::pin(async move {
 		let overlay_db = OverlayedBackend::new(&db);
-		assert_eq!(
+		assert_matches!(
 			handle_approved_ancestor(&mut ctx, &overlay_db, block_hash_4, 0, &Default::default())
-				.await.unwrap(),
-			Some((block_hash_2, 2)),
+				.await,
+			Ok(Some(HighestApprovedAncestorBlock { hash, number, .. })) => {
+				assert_eq!((block_hash_2, 2), (hash, number));
+			}
 		)
 	});
 

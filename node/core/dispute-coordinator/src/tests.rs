@@ -20,6 +20,7 @@ use polkadot_primitives::v1::{BlakeTwo256, HashT, ValidatorId, Header, SessionIn
 use polkadot_node_subsystem::{jaeger, ActiveLeavesUpdate, ActivatedLeaf, LeafStatus};
 use polkadot_node_subsystem::messages::{
 	AllMessages, ChainApiMessage, RuntimeApiMessage, RuntimeApiRequest,
+	BlockDescription,
 };
 use polkadot_node_subsystem_test_helpers::{make_subsystem_context, TestSubsystemContextHandle};
 use sp_core::testing::TaskExecutor;
@@ -611,10 +612,10 @@ fn finality_votes_ignore_disputed_candidates() {
 			let block_hash_b = Hash::repeat_byte(0x0b);
 
 			virtual_overseer.send(FromOverseer::Communication {
-				msg: DisputeCoordinatorMessage::DetermineUndisputedChain {
+				msg: DisputeCoordinatorMessage::DetermineUndisputedChain{
 					base_number: 10,
 					block_descriptions: vec![
-						(block_hash_a, session, vec![candidate_hash]),
+						BlockDescription { block_hash: block_hash_a, session, candidates: vec![candidate_hash] },
 					],
 					tx,
 				},
@@ -627,8 +628,8 @@ fn finality_votes_ignore_disputed_candidates() {
 				msg: DisputeCoordinatorMessage::DetermineUndisputedChain {
 					base_number: 10,
 					block_descriptions: vec![
-						(block_hash_a, session, vec![]),
-						(block_hash_b, session, vec![candidate_hash]),
+						BlockDescription { block_hash: block_hash_a, session, candidates: vec![] },
+						BlockDescription { block_hash: block_hash_b, session, candidates: vec![candidate_hash] },
 					],
 					tx,
 				},
@@ -723,7 +724,7 @@ fn supermajority_valid_dispute_may_be_finalized() {
 				msg: DisputeCoordinatorMessage::DetermineUndisputedChain {
 					base_number: 10,
 					block_descriptions: vec![
-						(block_hash_a, session, vec![candidate_hash]),
+						BlockDescription { block_hash: block_hash_a, session, candidates: vec![candidate_hash] },
 					],
 					tx,
 				},
@@ -736,8 +737,8 @@ fn supermajority_valid_dispute_may_be_finalized() {
 				msg: DisputeCoordinatorMessage::DetermineUndisputedChain {
 					base_number: 10,
 					block_descriptions: vec![
-						(block_hash_a, session, vec![]),
-						(block_hash_b, session, vec![candidate_hash]),
+						BlockDescription { block_hash: block_hash_a, session, candidates: vec![] },
+						BlockDescription { block_hash: block_hash_b, session, candidates: vec![candidate_hash] },
 					],
 					tx,
 				},

@@ -249,7 +249,7 @@ pub enum DisputeCoordinatorMessage {
 		/// The number of the lowest possible block to vote on.
 		base_number: BlockNumber,
 		/// Descriptions of all the blocks counting upwards from the block after the base number
-		block_descriptions: Vec<(Hash, SessionIndex, Vec<CandidateHash>)>,
+		block_descriptions: Vec<BlockDescription>,
 		/// A response channel - `None` to vote on base, `Some` to vote higher.
 		tx: oneshot::Sender<Option<(BlockNumber, Hash)>>,
 	}
@@ -789,6 +789,33 @@ pub enum ApprovalCheckError {
 	Internal(Hash, CandidateHash),
 }
 
+
+/// Describes a relay-chain block by the para-chain candidates
+/// it includes.
+#[derive(Clone, Debug)]
+pub struct BlockDescription {
+	/// The relay-chain block hash.
+	pub block_hash: Hash,
+	/// The session index of this block.
+	pub session: SessionIndex,
+	/// The set of para-chain candidates.
+	pub candidates: Vec<CandidateHash>,
+}
+
+/// Response type to `ApprovalVotingMessage::ApprovedAncestor`.
+#[derive(Clone, Debug)]
+pub struct HighestApprovedAncestorBlock {
+	/// The block hash of the highest viable ancestor.
+	pub hash: Hash,
+	/// The block number of the highest viable ancestor.
+	pub number: BlockNumber,
+	/// Block descriptions in the direct path between the
+	/// initially provided hash and the highest viable ancestor.
+	/// Primarily for use with `DetermineUndisputedChain`.
+	/// Must be sorted from lowest to highest block number.
+	pub descriptions: Vec<BlockDescription>,
+}
+
 /// Message to the Approval Voting subsystem.
 #[derive(Debug)]
 pub enum ApprovalVotingMessage {
@@ -814,7 +841,7 @@ pub enum ApprovalVotingMessage {
 	///
 	/// It can also return the same block hash, if that is acceptable to vote upon.
 	/// Return `None` if the input hash is unrecognized.
-	ApprovedAncestor(Hash, BlockNumber, oneshot::Sender<Option<(Hash, BlockNumber)>>),
+	ApprovedAncestor(Hash, BlockNumber, oneshot::Sender<Option<HighestApprovedAncestorBlock>>),
 }
 
 /// Message to the Approval Distribution subsystem.

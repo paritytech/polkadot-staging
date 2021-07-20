@@ -28,8 +28,24 @@ use sp_core::{
 use sp_wasm_interface::HostFunctions as _;
 
 const CONFIG: Config = Config {
-	// TODO: Make sure we don't use more than 1GB: https://github.com/paritytech/polkadot/issues/699
+	// Memory configuration
+	//
+	// When Substrate Runtime is instantiated, a number of wasm pages are mounted for the Substrate
+	// Runtime instance. The number of pages is specified by `heap_pages`.
+	//
+	// Besides `heap_pages` linear memory requests an initial number of pages. Those pages are
+	// typically used for placing the so-called shadow stack and the data section.
+	//
+	// By default, rustc (or lld specifically) allocates 1 MiB for the shadow stack. That is, 16
+	// wasm pages.
+	//
+	// Data section for runtimes are typically rather small and can fit in a single digit number of
+	// wasm pages.
+	//
+	// Thus let's assume that 32 pages or 2 MiB are used for these needs.
+	max_memory_pages: Some(2048 + 32),
 	heap_pages: 2048,
+
 	allow_missing_func_imports: true,
 	cache_path: None,
 	semantics: Semantics {

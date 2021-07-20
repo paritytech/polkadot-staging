@@ -28,6 +28,8 @@ use polkadot_network_bridge::RequestMultiplexer;
 use polkadot_node_core_av_store::Config as AvailabilityConfig;
 use polkadot_node_core_approval_voting::Config as ApprovalVotingConfig;
 use polkadot_node_core_candidate_validation::Config as CandidateValidationConfig;
+use polkadot_node_core_chain_selection::Config as ChainSelectionConfig;
+use polkadot_node_core_dispute_coordinator::Config as DisputeCoordinatorConfig;
 use polkadot_overseer::{AllSubsystems, BlockInfo, Overseer, Handle};
 use polkadot_primitives::v1::ParachainHost;
 use sc_authority_discovery::Service as AuthorityDiscoveryService;
@@ -54,6 +56,10 @@ pub use polkadot_availability_recovery::AvailabilityRecoverySubsystem;
 pub use polkadot_approval_distribution::ApprovalDistribution as ApprovalDistributionSubsystem;
 pub use polkadot_node_core_approval_voting::ApprovalVotingSubsystem;
 pub use polkadot_gossip_support::GossipSupport as GossipSupportSubsystem;
+pub use polkadot_node_core_dispute_coordinator::DisputeCoordinatorSubsystem;
+pub use polkadot_node_core_dispute_participation::DisputeParticipationSubsystem;
+pub use polkadot_dispute_distribution::DisputeDistributionSubsystem;
+pub use polkadot_node_core_chain_selection::ChainSelectionSubsystem;
 
 /// Arguments passed for overseer construction.
 pub struct OverseerGenArgs<'a, Spawner, RuntimeClient> where
@@ -69,10 +75,6 @@ pub struct OverseerGenArgs<'a, Spawner, RuntimeClient> where
 	pub runtime_client: Arc<RuntimeClient>,
 	/// The underlying key value store for the parachains.
 	pub parachains_db: Arc<dyn kvdb::KeyValueDB>,
-	/// Configuration for the availability store subsystem.
-	pub availability_config: AvailabilityConfig,
-	/// Configuration for the approval voting subsystem.
-	pub approval_voting_config: ApprovalVotingConfig,
 	/// Underlying network service implementation.
 	pub network_service: Arc<sc_network::NetworkService<Block, Hash>>,
 	/// Underlying authority discovery service.
@@ -85,8 +87,16 @@ pub struct OverseerGenArgs<'a, Spawner, RuntimeClient> where
 	pub spawner: Spawner,
 	/// Determines the behavior of the collator.
 	pub is_collator: IsCollator,
+	/// Configuration for the approval voting subsystem.
+	pub approval_voting_config: ApprovalVotingConfig,
+	/// Configuration for the availability store subsystem.
+	pub availability_config: AvailabilityConfig,
 	/// Configuration for the candidate validation subsystem.
 	pub candidate_validation_config: CandidateValidationConfig,
+	/// Configuration for the chain selection subsystem.
+	pub chain_selection_config: ChainSelectionConfig,
+	/// Configuration for the dispute coordinator subsystem.
+	pub dispute_coordinator_config: DisputeCoordinatorConfig,
 }
 
 /// Create a default, unaltered set of subsystems.
@@ -99,15 +109,17 @@ pub fn create_default_subsystems<'a, Spawner, RuntimeClient>
 		keystore,
 		runtime_client,
 		parachains_db,
-		availability_config,
-		approval_voting_config,
 		network_service,
 		authority_discovery_service,
 		request_multiplexer,
 		registry,
 		spawner,
 		is_collator,
+		approval_voting_config,
+		availability_config,
 		candidate_validation_config,
+		chain_selection_config,
+		dispute_coordinator_config,
 		..
 	} : OverseerGenArgs<'a, Spawner, RuntimeClient>
 ) -> Result<
@@ -129,6 +141,10 @@ pub fn create_default_subsystems<'a, Spawner, RuntimeClient>
 	ApprovalDistributionSubsystem,
 	ApprovalVotingSubsystem,
 	GossipSupportSubsystem,
+	DisputeCoordinatorSubsystem,
+	DisputeParticipationSubsystem,
+	DisputeDistributionSubsystem<AuthorityDiscoveryService>,
+	ChainSelectionSubsystem,
 >,
 	Error
 >
@@ -218,13 +234,28 @@ where
 		),
 		approval_voting: ApprovalVotingSubsystem::with_config(
 			approval_voting_config,
-			parachains_db,
+			parachains_db.clone(),
 			keystore.clone(),
 			Box::new(network_service.clone()),
 			Metrics::register(registry)?,
 		),
 		gossip_support: GossipSupportSubsystem::new(
 			keystore.clone(),
+		),
+		dispute_coordinator: DisputeCoordinatorSubsystem::new(
+			parachains_db.clone(),
+			dispute_coordinator_config,
+			keystore.clone(),
+		),
+		dispute_participation: DisputeParticipationSubsystem::new(),
+		dispute_distribution: DisputeDistributionSubsystem::new(
+			keystore.clone(),
+			authority_discovery_service.clone(),
+			Metrics::register(registry)?,
+		),
+		chain_selection: ChainSelectionSubsystem::new(
+			chain_selection_config,
+			parachains_db,
 		),
 	};
 	Ok(all_subsystems)

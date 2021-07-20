@@ -22,16 +22,21 @@ use {
 	kvdb::KeyValueDB,
 };
 
+#[cfg(feature = "full-node")]
 mod upgrade;
 
 #[cfg(any(test,feature = "full-node"))]
-mod columns {
-	pub const NUM_COLUMNS: u32 = 3;
-
+pub(crate) mod columns {
+	pub mod v0 {
+		pub const NUM_COLUMNS: u32 = 3;
+	}
+	pub const NUM_COLUMNS: u32 = 5;
 
 	pub const COL_AVAILABILITY_DATA: u32 = 0;
 	pub const COL_AVAILABILITY_META: u32 = 1;
 	pub const COL_APPROVAL_DATA: u32 = 2;
+	pub const COL_CHAIN_SELECTION_DATA: u32 = 3;
+	pub const COL_DISPUTE_COORDINATOR_DATA: u32 = 4;
 }
 
 /// Columns used by different subsystems.
@@ -44,6 +49,10 @@ pub struct ColumnsConfig {
 	pub col_availability_meta: u32,
 	/// The column used by approval voting for data.
 	pub col_approval_data: u32,
+	/// The column used by chain selection for data.
+	pub col_chain_selection_data: u32,
+	/// The column used by dispute coordinator for data.
+	pub col_dispute_coordinator_data: u32,
 }
 
 /// The real columns used by the parachains DB.
@@ -52,6 +61,8 @@ pub const REAL_COLUMNS: ColumnsConfig = ColumnsConfig {
 	col_availability_data: columns::COL_AVAILABILITY_DATA,
 	col_availability_meta: columns::COL_AVAILABILITY_META,
 	col_approval_data: columns::COL_APPROVAL_DATA,
+	col_chain_selection_data: columns::COL_CHAIN_SELECTION_DATA,
+	col_dispute_coordinator_data: columns::COL_DISPUTE_COORDINATOR_DATA,
 };
 
 /// The cache size for each column, in megabytes.
@@ -76,7 +87,7 @@ impl Default for CacheSizes {
 }
 
 #[cfg(feature = "full-node")]
-fn other_io_error(err: String) -> io::Error {
+pub(crate) fn other_io_error(err: String) -> io::Error {
 	io::Error::new(io::ErrorKind::Other, err)
 }
 

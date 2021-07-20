@@ -77,7 +77,7 @@ where
 pub struct AllSubsystems<
 	CV = (), CB = (), SD = (), AD = (), AR = (), BS = (), BD = (), P = (),
 	RA = (), AS = (), NB = (), CA = (), CG = (), CP = (), ApD = (), ApV = (),
-	GS = (),
+	GS = (), DC = (), DP = (), DD = (), CS = (),
 > {
 	/// A candidate validation subsystem.
 	pub candidate_validation: CV,
@@ -113,10 +113,18 @@ pub struct AllSubsystems<
 	pub approval_voting: ApV,
 	/// A Connection Request Issuer subsystem.
 	pub gossip_support: GS,
+	/// A Dispute Coordinator subsystem.
+	pub dispute_coordinator: DC,
+	/// A Dispute Participation subsystem.
+	pub dispute_participation: DP,
+	/// A Dispute Distribution subsystem.
+	pub dispute_distribution: DD,
+	/// A Chain Selection subsystem.
+	pub chain_selection: CS,
 }
 
-impl<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>
-	AllSubsystems<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>
+impl<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS, DC, DP, DD, CS>
+	AllSubsystems<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS, DC, DP, DD, CS>
 {
 	/// Create a new instance of [`AllSubsystems`].
 	///
@@ -131,6 +139,10 @@ impl<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>
 	/// polkadot_overseer::AllSubsystems::<()>::dummy();
 	/// ```
 	pub fn dummy() -> AllSubsystems<
+		DummySubsystem,
+		DummySubsystem,
+		DummySubsystem,
+		DummySubsystem,
 		DummySubsystem,
 		DummySubsystem,
 		DummySubsystem,
@@ -167,11 +179,15 @@ impl<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>
 			approval_distribution: DummySubsystem,
 			approval_voting: DummySubsystem,
 			gossip_support: DummySubsystem,
+			dispute_coordinator: DummySubsystem,
+			dispute_participation: DummySubsystem,
+			dispute_distribution: DummySubsystem,
+			chain_selection: DummySubsystem,
 		}
 	}
 
 	/// Reference every individual subsystem.
-	pub fn as_ref(&self) -> AllSubsystems<&'_ CV, &'_ CB, &'_ SD, &'_ AD, &'_ AR, &'_ BS, &'_ BD, &'_ P, &'_ RA, &'_ AS, &'_ NB, &'_ CA, &'_ CG, &'_ CP, &'_ ApD, &'_ ApV, &'_ GS> {
+	pub fn as_ref(&self) -> AllSubsystems<&'_ CV, &'_ CB, &'_ SD, &'_ AD, &'_ AR, &'_ BS, &'_ BD, &'_ P, &'_ RA, &'_ AS, &'_ NB, &'_ CA, &'_ CG, &'_ CP, &'_ ApD, &'_ ApV, &'_ GS, &'_ DC, &'_ DP, &'_ DD, &'_ CS> {
 		AllSubsystems {
 			candidate_validation: &self.candidate_validation,
 			candidate_backing: &self.candidate_backing,
@@ -190,6 +206,10 @@ impl<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>
 			approval_distribution: &self.approval_distribution,
 			approval_voting: &self.approval_voting,
 			gossip_support: &self.gossip_support,
+			dispute_coordinator: &self.dispute_coordinator,
+			dispute_participation: &self.dispute_participation,
+			dispute_distribution: &self.dispute_distribution,
+			chain_selection: &self.chain_selection,
 		}
 	}
 
@@ -213,6 +233,10 @@ impl<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>
 			<Mapper as MapSubsystem<ApD>>::Output,
 			<Mapper as MapSubsystem<ApV>>::Output,
 			<Mapper as MapSubsystem<GS>>::Output,
+			<Mapper as MapSubsystem<DC>>::Output,
+			<Mapper as MapSubsystem<DP>>::Output,
+			<Mapper as MapSubsystem<DD>>::Output,
+			<Mapper as MapSubsystem<CS>>::Output,
 		>
 	where
 		Mapper: MapSubsystem<CV>,
@@ -232,6 +256,10 @@ impl<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>
 		Mapper: MapSubsystem<ApD>,
 		Mapper: MapSubsystem<ApV>,
 		Mapper: MapSubsystem<GS>,
+		Mapper: MapSubsystem<DC>,
+		Mapper: MapSubsystem<DP>,
+		Mapper: MapSubsystem<DD>,
+		Mapper: MapSubsystem<CS>,
 	{
 		AllSubsystems {
 			candidate_validation: <Mapper as MapSubsystem<CV>>::map_subsystem(&mapper, self.candidate_validation),
@@ -251,6 +279,10 @@ impl<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>
 			approval_distribution: <Mapper as MapSubsystem<ApD>>::map_subsystem(&mapper, self.approval_distribution),
 			approval_voting: <Mapper as MapSubsystem<ApV>>::map_subsystem(&mapper, self.approval_voting),
 			gossip_support: <Mapper as MapSubsystem<GS>>::map_subsystem(&mapper, self.gossip_support),
+			dispute_coordinator: <Mapper as MapSubsystem<DC>>::map_subsystem(&mapper, self.dispute_coordinator),
+			dispute_participation: <Mapper as MapSubsystem<DP>>::map_subsystem(&mapper, self.dispute_participation),
+			dispute_distribution: <Mapper as MapSubsystem<DD>>::map_subsystem(&mapper, self.dispute_distribution),
+			chain_selection: <Mapper as MapSubsystem<CS>>::map_subsystem(&mapper, self.chain_selection),
 		}
 	}
 }

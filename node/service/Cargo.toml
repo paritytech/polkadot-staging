@@ -103,6 +103,9 @@ polkadot-node-core-backing = { path = "../core/backing", optional = true }
 polkadot-node-core-bitfield-signing = { path = "../core/bitfield-signing", optional = true }
 polkadot-node-core-candidate-validation = { path = "../core/candidate-validation", optional = true }
 polkadot-node-core-chain-api = { path = "../core/chain-api", optional = true }
+polkadot-node-core-chain-selection = { path = "../core/chain-selection", optional = true }
+polkadot-node-core-dispute-coordinator = { path = "../core/dispute-coordinator", optional = true }
+polkadot-node-core-dispute-participation = { path = "../core/dispute-participation", optional = true }
 polkadot-node-core-provisioner = { path = "../core/provisioner", optional = true }
 polkadot-node-core-runtime-api = { path = "../core/runtime-api", optional = true }
 polkadot-statement-distribution = { path = "../network/statement-distribution", optional = true }
@@ -133,6 +136,9 @@ full-node = [
 	"polkadot-node-core-bitfield-signing",
 	"polkadot-node-core-candidate-validation",
 	"polkadot-node-core-chain-api",
+	"polkadot-node-core-chain-selection",
+	"polkadot-node-core-dispute-coordinator",
+	"polkadot-node-core-dispute-participation",
 	"polkadot-node-core-provisioner",
 	"polkadot-node-core-runtime-api",
 	"polkadot-statement-distribution",

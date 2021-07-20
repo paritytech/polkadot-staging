@@ -125,7 +125,6 @@ impl<B> SelectRelayChain<B>
 {
 	/// Create a new [`SelectRelayChain`] wrapping the given chain backend
 	/// and a handle to the overseer.
-	#[allow(unused)]
 	pub fn new(backend: Arc<B>, overseer: Handle, metrics: Metrics) -> Self {
 		SelectRelayChain {
 			fallback: sc_consensus::LongestChain::new(backend.clone()),
@@ -169,7 +168,6 @@ impl<B> SelectRelayChain<B>
 impl<B> SelectRelayChain<B> {
 	/// Given an overseer handler, this connects the [`SelectRelayChain`]'s
 	/// internal handler to the same overseer.
-	#[allow(unused)]
 	pub fn connect_overseer_handler(
 		&mut self,
 		other_handler: &Handle,

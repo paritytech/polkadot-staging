@@ -42,6 +42,8 @@ use {
 	polkadot_node_core_av_store::Error as AvailabilityError,
 	polkadot_node_core_approval_voting::Config as ApprovalVotingConfig,
 	polkadot_node_core_candidate_validation::Config as CandidateValidationConfig,
+	polkadot_node_core_chain_selection::Config as ChainSelectionConfig,
+	polkadot_node_core_dispute_coordinator::Config as DisputeCoordinatorConfig,
 	polkadot_overseer::BlockInfo,
 	sp_trie::PrefixedMemoryDB,
 	sc_client_api::ExecutorProvider,
@@ -214,7 +216,7 @@ fn jaeger_launch_collector_with_agent(spawner: impl SpawnNamed, config: &Configu
 }
 
 #[cfg(feature = "full-node")]
-type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
+type FullSelectChain = relay_chain_selection::SelectRelayChain<FullBackend>;
 #[cfg(feature = "full-node")]
 type FullGrandpaBlockImport<RuntimeApi, Executor> = grandpa::GrandpaBlockImport<
 	FullBackend, Block, FullClient<RuntimeApi, Executor>, FullSelectChain
@@ -298,7 +300,11 @@ fn new_partial<RuntimeApi, Executor>(
 
 	jaeger_launch_collector_with_agent(task_manager.spawn_handle(), &*config, jaeger_agent)?;
 
-	let select_chain = sc_consensus::LongestChain::new(backend.clone());
+	let select_chain = relay_chain_selection::SelectRelayChain::new(
+		backend.clone(),
+		Handle::new_disconnected(),
+		polkadot_node_subsystem_util::metrics::Metrics::register(config.prometheus_registry())?,
+	);
 
 	let transaction_pool = sc_transaction_pool::BasicPool::new_full(
 		config.transaction_pool.clone(),
@@ -480,7 +486,7 @@ impl IsCollator {
 /// Returns the active leaves the overseer should start with.
 #[cfg(feature = "full-node")]
 async fn active_leaves<RuntimeApi, Executor>(
-	select_chain: &sc_consensus::LongestChain<FullBackend, Block>,
+	select_chain: &impl SelectChain<Block>,
 	client: &FullClient<RuntimeApi, Executor>,
 ) -> Result<Vec<BlockInfo>, Error>
 where
@@ -573,7 +579,7 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 		backend,
 		mut task_manager,
 		keystore_container,
-		select_chain,
+		mut select_chain,
 		import_queue,
 		transaction_pool,
 		other: (rpc_extensions_builder, import_setup, rpc_setup, slot_duration, mut telemetry)
@@ -655,6 +661,15 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 		},
 	};
 
+	let chain_selection_config = ChainSelectionConfig {
+		col_data: crate::parachains_db::REAL_COLUMNS.col_chain_selection_data,
+		stagnant_check_interval: Default::default(),
+	};
+
+	let dispute_coordinator_config = DisputeCoordinatorConfig {
+		col_data: crate::parachains_db::REAL_COLUMNS.col_dispute_coordinator_data,
+	};
+
 	let chain_spec = config.chain_spec.cloned_box();
 	let rpc_handlers = service::spawn_tasks(service::SpawnTasksParams {
 		config,
@@ -734,15 +749,17 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 				keystore,
 				runtime_client: overseer_client.clone(),
 				parachains_db,
-				availability_config,
-				approval_voting_config,
 				network_service: network.clone(),
 				authority_discovery_service,
 				request_multiplexer,
 				registry: prometheus_registry.as_ref(),
 				spawner,
 				is_collator,
+				approval_voting_config,
+				availability_config,
 				candidate_validation_config,
+				chain_selection_config,
+				dispute_coordinator_config,
 			}
 		)?;
 		let overseer_handler_clone = overseer_handler.clone();
@@ -765,6 +782,7 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 			}
 		}));
 
+		select_chain.connect_overseer_handler(&overseer_handler);
 		Some(overseer_handler)
 	} else {
 		None
@@ -889,24 +907,6 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 		// after the given pause block is finalized and restarting after the
 		// given delay.
 		let builder = grandpa::VotingRulesBuilder::default();
-		// we should enable approval checking voting rule before we deploy parachains on polkadot
-		let enable_approval_checking_voting_rule = chain_spec.is_kusama()
-			|| chain_spec.is_westend()
-			|| chain_spec.is_rococo()
-			|| chain_spec.is_wococo();
-
-		let builder = if let Some(ref overseer) = overseer_handler {
-			if enable_approval_checking_voting_rule {
-				builder.add(grandpa_support::ApprovalCheckingVotingRule::new(
-					overseer.clone(),
-					prometheus_registry.as_ref(),
-				)?)
-			} else {
-				builder
-			}
-		} else {
-			builder
-		};
 
 		let voting_rule = match grandpa_pause {
 			Some((block, delay)) => {

@@ -163,9 +163,14 @@ impl<Client> HeadSupportsParachains for Arc<Client> where
 ///
 /// [`Overseer`]: struct.Overseer.html
 #[derive(Clone)]
-pub struct Handle(pub OverseerHandle);
+pub struct Handle(pub Option<OverseerHandle>);
 
 impl Handle {
+	/// Create a new disconnected [`Handle`].
+	pub fn new_disconnected() -> Self {
+		Self(None)
+	}
+
 	/// Inform the `Overseer` that that some block was imported.
 	pub async fn block_imported(&mut self, block: BlockInfo) {
 		self.send_and_log_error(Event::BlockImported(block)).await
@@ -207,19 +212,18 @@ impl Handle {
 
 	/// Most basic operation, to stop a server.
 	async fn send_and_log_error(&mut self, event: Event) {
-		if self.0.send(event).await.is_err() {
-			tracing::info!(target: LOG_TARGET, "Failed to send an event to Overseer");
+		if let Some(handle) = self.0.as_mut() {
+			if handle.send(event).await.is_err() {
+				tracing::info!(target: LOG_TARGET, "Failed to send an event to Overseer");
+			}
+		} else {
+			tracing::warn!(target: LOG_TARGET, "Using a disconnected Handle to send to Overseer");
 		}
-	}
-
-	/// Whether the overseer handler is connected to an overseer.
-	pub fn is_connected(&self) -> bool {
-		true
 	}
 
 	/// Whether the handler is disconnected.
 	pub fn is_disconnected(&self) -> bool {
-		false
+		self.0.is_none()
 	}
 
 	/// Using this handler, connect another handler to the same
@@ -338,7 +342,6 @@ pub async fn forward_events<P: BlockchainEvents<Block>>(
 	network=NetworkBridgeEvent<protocol_v1::ValidationProtocol>,
 )]
 pub struct Overseer<SupportsParachains> {
-
 	#[subsystem(no_dispatch, CandidateValidationMessage)]
 	candidate_validation: CandidateValidation,
 
@@ -390,16 +393,16 @@ pub struct Overseer<SupportsParachains> {
 	#[subsystem(no_dispatch, GossipSupportMessage)]
 	gossip_support: GossipSupport,
 
-	#[subsystem(no_dispatch, wip, DisputeCoordinatorMessage)]
-	dipute_coordinator: DisputeCoordinator,
+	#[subsystem(no_dispatch, DisputeCoordinatorMessage)]
+	dispute_coordinator: DisputeCoordinator,
 
-	#[subsystem(no_dispatch, wip, DisputeParticipationMessage)]
+	#[subsystem(no_dispatch, DisputeParticipationMessage)]
 	dispute_participation: DisputeParticipation,
 
-	#[subsystem(no_dispatch, wip, DisputeDistributionMessage)]
-	dipute_distribution: DisputeDistribution,
+	#[subsystem(no_dispatch, DisputeDistributionMessage)]
+	dispute_distribution: DisputeDistribution,
 
-	#[subsystem(no_dispatch, wip, ChainSelectionMessage)]
+	#[subsystem(no_dispatch, ChainSelectionMessage)]
 	chain_selection: ChainSelection,
 
 	/// External listeners waiting for a hash to be in the active-leave set.
@@ -549,9 +552,9 @@ where
 	/// # 	});
 	/// # }
 	/// ```
-	pub fn new<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>(
+	pub fn new<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS, DC, DP, DD, CS>(
 		leaves: impl IntoIterator<Item = BlockInfo>,
-		all_subsystems: AllSubsystems<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS>,
+		all_subsystems: AllSubsystems<CV, CB, SD, AD, AR, BS, BD, P, RA, AS, NB, CA, CG, CP, ApD, ApV, GS, DC, DP, DD, CS>,
 		prometheus_registry: Option<&prometheus::Registry>,
 		supports_parachains: SupportsParachains,
 		s: S,
@@ -574,6 +577,10 @@ where
 		ApD: Subsystem<OverseerSubsystemContext<ApprovalDistributionMessage>, SubsystemError> + Send,
 		ApV: Subsystem<OverseerSubsystemContext<ApprovalVotingMessage>, SubsystemError> + Send,
 		GS: Subsystem<OverseerSubsystemContext<GossipSupportMessage>, SubsystemError> + Send,
+		DC: Subsystem<OverseerSubsystemContext<DisputeCoordinatorMessage>, SubsystemError> + Send,
+		DP: Subsystem<OverseerSubsystemContext<DisputeParticipationMessage>, SubsystemError> + Send,
+		DD: Subsystem<OverseerSubsystemContext<DisputeDistributionMessage>, SubsystemError> + Send,
+		CS: Subsystem<OverseerSubsystemContext<ChainSelectionMessage>, SubsystemError> + Send,
 		S: SpawnNamed,
 	{
 		let metrics: Metrics = <Metrics as MetricsTrait>::register(prometheus_registry)?;
@@ -596,6 +603,10 @@ where
 			.approval_distribution(all_subsystems.approval_distribution)
 			.approval_voting(all_subsystems.approval_voting)
 			.gossip_support(all_subsystems.gossip_support)
+			.dispute_coordinator(all_subsystems.dispute_coordinator)
+			.dispute_participation(all_subsystems.dispute_participation)
+			.dispute_distribution(all_subsystems.dispute_distribution)
+			.chain_selection(all_subsystems.chain_selection)
 			.leaves(Vec::from_iter(
 				leaves.into_iter().map(|BlockInfo { hash, parent_hash: _, number }| (hash, number))
 			))
@@ -647,7 +658,7 @@ where
 			overseer.spawner().spawn("metrics_metronome", Box::pin(metronome));
 		}
 
-		Ok((overseer, Handle(handler)))
+		Ok((overseer, Handle(Some(handler))))
 	}
 
 	/// Stop the overseer.

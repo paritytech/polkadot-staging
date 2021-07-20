@@ -18,7 +18,7 @@ log = "0.4.13"
 thiserror = "1.0.23"
 structopt = { version = "0.3.21", optional = true }
 wasm-bindgen = { version = "0.2.70", optional = true }
-wasm-bindgen-futures = { version = "0.4.23", optional = true }
+wasm-bindgen-futures = { version = "0.4.24", optional = true }
 futures = "0.3.15"
 
 service = { package = "polkadot-service", path = "../node/service", default-features = false, optional = true }

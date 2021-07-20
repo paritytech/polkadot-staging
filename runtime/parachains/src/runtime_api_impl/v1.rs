@@ -100,7 +100,7 @@ pub fn availability_cores<T: initializer::Config>() -> Vec<CoreState<T::Hash, T:
 			CoreState::Occupied(match occupied {
 				CoreOccupied::Parachain => {
 					let para_id = parachains[i];
-					let pending_availability = <inclusion::Module<T>>
+					let pending_availability = <inclusion::Pallet<T>>
 						::pending_availability(para_id)
 						.expect("Occupied core always has pending availability; qed");
 
@@ -128,7 +128,7 @@ pub fn availability_cores<T: initializer::Config>() -> Vec<CoreState<T::Hash, T:
 				}
 				CoreOccupied::Parathread(p) => {
 					let para_id = p.claim.0;
-					let pending_availability = <inclusion::Module<T>>
+					let pending_availability = <inclusion::Pallet<T>>
 						::pending_availability(para_id)
 						.expect("Occupied core always has pending availability; qed");
 
@@ -180,14 +180,14 @@ fn with_assumption<Config, T, F>(
 {
 	match assumption {
 		OccupiedCoreAssumption::Included => {
-			<inclusion::Module<Config>>::force_enact(para_id);
+			<inclusion::Pallet<Config>>::force_enact(para_id);
 			build()
 		}
 		OccupiedCoreAssumption::TimedOut => {
 			build()
 		}
 		OccupiedCoreAssumption::Free => {
-			if <inclusion::Module<Config>>::pending_availability(para_id).is_some() {
+			if <inclusion::Pallet<Config>>::pending_availability(para_id).is_some() {
 				None
 			} else {
 				build()
@@ -219,7 +219,7 @@ pub fn check_validation_outputs<T: initializer::Config>(
 	para_id: ParaId,
 	outputs: primitives::v1::CandidateCommitments,
 ) -> bool {
-	<inclusion::Module<T>>::check_validation_outputs_for_runtime_api(para_id, outputs)
+	<inclusion::Pallet<T>>::check_validation_outputs_for_runtime_api(para_id, outputs)
 }
 
 /// Implementation for the `session_index_for_child` function of the runtime API.
@@ -278,7 +278,7 @@ pub fn validation_code<T: initializer::Config>(
 pub fn candidate_pending_availability<T: initializer::Config>(para_id: ParaId)
 	-> Option<CommittedCandidateReceipt<T::Hash>>
 {
-	<inclusion::Module<T>>::candidate_pending_availability(para_id)
+	<inclusion::Pallet<T>>::candidate_pending_availability(para_id)
 }
 
 /// Implementation for the `candidate_events` function of the runtime API.
@@ -300,6 +300,8 @@ where
 				=> CandidateEvent::CandidateIncluded(c, h, core, group),
 			RawEvent::<T>::CandidateTimedOut(c, h, core)
 				=> CandidateEvent::CandidateTimedOut(c, h, core),
+			RawEvent::<T>::__Ignore(_, _)
+				=> unreachable!("__Ignore cannot be used"),
 		})
 		.collect()
 }

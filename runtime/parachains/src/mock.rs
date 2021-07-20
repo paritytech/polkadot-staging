@@ -48,7 +48,7 @@ frame_support::construct_runtime!(
 		Paras: paras::{Pallet, Origin, Call, Storage, Event, Config},
 		Configuration: configuration::{Pallet, Call, Storage, Config<T>},
 		Shared: shared::{Pallet, Call, Storage},
-		Inclusion: inclusion::{Pallet, Call, Storage, Event<T>},
+		ParaInclusion: inclusion::{Pallet, Call, Storage, Event<T>},
 		Scheduler: scheduler::{Pallet, Call, Storage},
 		Initializer: initializer::{Pallet, Call, Storage},
 		Dmp: dmp::{Pallet, Call, Storage},

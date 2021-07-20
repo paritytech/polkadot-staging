@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! The inclusion module is responsible for inclusion and availability of scheduled parachains
+//! The inclusion pallet is responsible for inclusion and availability of scheduled parachains
 //! and parathreads.
 //!
 //! It is responsible for carrying candidates from being backable to being backed, and then from backed
@@ -27,15 +27,14 @@ use primitives::v1::{
 	BackedCandidate, CoreIndex, GroupIndex, CommittedCandidateReceipt,
 	CandidateReceipt, HeadData, CandidateHash,
 };
-use frame_support::{
-	decl_storage, decl_module, decl_error, decl_event, ensure, dispatch::DispatchResult, IterableStorageMap,
-	weights::Weight, traits::Get,
-};
+use frame_support::pallet_prelude::*;
 use parity_scale_codec::{Encode, Decode};
 use bitvec::{order::Lsb0 as BitOrderLsb0, vec::BitVec};
 use sp_runtime::{DispatchError, traits::{One, Saturating}};
 
 use crate::{configuration, disputes, paras, dmp, ump, hrmp, shared, scheduler::CoreAssignment};
+
+pub use pallet::*;
 
 /// A bitfield signed by a validator indicating that it is keeping its piece of the erasure-coding
 /// for any backed candidates referred to by a `1` bit available.
@@ -108,38 +107,43 @@ pub trait RewardValidators {
 	fn reward_bitfields(validators: impl IntoIterator<Item=ValidatorIndex>);
 }
 
-pub trait Config:
-	frame_system::Config
-	+ shared::Config
-	+ paras::Config
-	+ dmp::Config
-	+ ump::Config
-	+ hrmp::Config
-	+ configuration::Config
-{
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
-	type DisputesHandler: disputes::DisputesHandler<Self::BlockNumber>;
-	type RewardValidators: RewardValidators;
-}
+#[frame_support::pallet]
+pub mod pallet {
+	use super::*;
 
-decl_storage! {
-	trait Store for Module<T: Config> as ParaInclusion {
-		/// The latest bitfield for each validator, referred to by their index in the validator set.
-		AvailabilityBitfields: map hasher(twox_64_concat) ValidatorIndex
-			=> Option<AvailabilityBitfieldRecord<T::BlockNumber>>;
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T>(_);
 
-		/// Candidates pending availability by `ParaId`.
-		PendingAvailability: map hasher(twox_64_concat) ParaId
-			=> Option<CandidatePendingAvailability<T::Hash, T::BlockNumber>>;
-
-		/// The commitments of candidates pending availability, by `ParaId`.
-		PendingAvailabilityCommitments: map hasher(twox_64_concat) ParaId
-			=> Option<CandidateCommitments>;
+	#[pallet::config]
+	pub trait Config:
+		frame_system::Config
+		+ shared::Config
+		+ paras::Config
+		+ dmp::Config
+		+ ump::Config
+		+ hrmp::Config
+		+ configuration::Config
+	{
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type DisputesHandler: disputes::DisputesHandler<Self::BlockNumber>;
+		type RewardValidators: RewardValidators;
 	}
-}
 
-decl_error! {
-	pub enum Error for Module<T: Config> {
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	#[pallet::metadata(T::Hash = "Hash")]
+	pub enum Event<T: Config> {
+		/// A candidate was backed. `[candidate, head_data]`
+		CandidateBacked(CandidateReceipt<T::Hash>, HeadData, CoreIndex, GroupIndex),
+		/// A candidate was included. `[candidate, head_data]`
+		CandidateIncluded(CandidateReceipt<T::Hash>, HeadData, CoreIndex, GroupIndex),
+		/// A candidate timed out. `[candidate, head_data]`
+		CandidateTimedOut(CandidateReceipt<T::Hash>, HeadData, CoreIndex),
+	}
+
+	#[pallet::error]
+	pub enum Error<T> {
 		/// Availability bitfield has unexpected size.
 		WrongBitfieldSize,
 		/// Multiple bitfields submitted by same validator or validators out of order by index.
@@ -189,33 +193,42 @@ decl_error! {
 		/// The validation code hash of the candidate is not valid.
 		InvalidValidationCodeHash,
 	}
-}
 
-decl_event! {
-	pub enum Event<T> where <T as frame_system::Config>::Hash {
-		/// A candidate was backed. `[candidate, head_data]`
-		CandidateBacked(CandidateReceipt<Hash>, HeadData, CoreIndex, GroupIndex),
-		/// A candidate was included. `[candidate, head_data]`
-		CandidateIncluded(CandidateReceipt<Hash>, HeadData, CoreIndex, GroupIndex),
-		/// A candidate timed out. `[candidate, head_data]`
-		CandidateTimedOut(CandidateReceipt<Hash>, HeadData, CoreIndex),
-	}
-}
+	/// The latest bitfield for each validator, referred to by their index in the validator set.
+	#[pallet::storage]
+	pub type AvailabilityBitfields<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		ValidatorIndex,
+		AvailabilityBitfieldRecord<T::BlockNumber>
+	>;
 
-decl_module! {
-	/// The parachain-candidate inclusion module.
-	pub struct Module<T: Config>
-		for enum Call where origin: <T as frame_system::Config>::Origin
-	{
-		type Error = Error<T>;
+	/// Candidates pending availability by `ParaId`.
+	#[pallet::storage]
+	pub type PendingAvailability<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		ParaId,
+		CandidatePendingAvailability<T::Hash, T::BlockNumber>
+	>;
 
-		fn deposit_event() = default;
-	}
+	/// The commitments of candidates pending availability, by `ParaId`.
+	#[pallet::storage]
+	pub type PendingAvailabilityCommitments<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		ParaId,
+		CandidateCommitments
+	>;
+
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {}
+
 }
 
 const LOG_TARGET: &str = "runtime::inclusion";
 
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
 	/// Block initialization logic, called by initializer.
 	pub(crate) fn initializer_initialize(_now: T::BlockNumber) -> Weight { 0 }
 
@@ -228,7 +241,7 @@ impl<T: Config> Module<T> {
 	) {
 		// unlike most drain methods, drained elements are not cleared on `Drop` of the iterator
 		// and require consumption.
-		for _ in <PendingAvailabilityCommitments>::drain() { }
+		for _ in <PendingAvailabilityCommitments<T>>::drain() { }
 		for _ in <PendingAvailability<T>>::drain() { }
 		for _ in <AvailabilityBitfields<T>>::drain() { }
 	}
@@ -343,7 +356,7 @@ impl<T: Config> Module<T> {
 		{
 			if pending_availability.availability_votes.count_ones() >= threshold {
 				<PendingAvailability<T>>::remove(&para_id);
-				let commitments = match PendingAvailabilityCommitments::take(&para_id) {
+				let commitments = match PendingAvailabilityCommitments::<T>::take(&para_id) {
 					Some(commitments) => commitments,
 					None => {
 						log::warn!(
@@ -517,7 +530,7 @@ impl<T: Config> Module<T> {
 
 						ensure!(
 							<PendingAvailability<T>>::get(&para_id).is_none() &&
-							<PendingAvailabilityCommitments>::get(&para_id).is_none(),
+							<PendingAvailabilityCommitments<T>>::get(&para_id).is_none(),
 							Error::<T>::CandidateScheduledBeforeParaFree,
 						);
 
@@ -613,7 +626,7 @@ impl<T: Config> Module<T> {
 				backed_in_number: check_cx.now,
 				backing_group: group,
 			});
-			<PendingAvailabilityCommitments>::insert(&para_id, commitments);
+			<PendingAvailabilityCommitments<T>>::insert(&para_id, commitments);
 		}
 
 		Ok(core_indices)
@@ -731,7 +744,7 @@ impl<T: Config> Module<T> {
 
 		for para_id in cleaned_up_ids {
 			let pending = <PendingAvailability<T>>::take(&para_id);
-			let commitments = <PendingAvailabilityCommitments>::take(&para_id);
+			let commitments = <PendingAvailabilityCommitments<T>>::take(&para_id);
 
 			if let (Some(pending), Some(commitments)) = (pending, commitments) {
 				// defensive: this should always be true.
@@ -767,7 +780,7 @@ impl<T: Config> Module<T> {
 
 		for para_id in cleaned_up_ids {
 			let _ = <PendingAvailability<T>>::take(&para_id);
-			let _ = <PendingAvailabilityCommitments>::take(&para_id);
+			let _ = <PendingAvailabilityCommitments<T>>::take(&para_id);
 		}
 
 		cleaned_up_cores
@@ -781,7 +794,7 @@ impl<T: Config> Module<T> {
 	/// where the changes to the state are expected to be discarded directly after.
 	pub(crate) fn force_enact(para: ParaId) {
 		let pending = <PendingAvailability<T>>::take(&para);
-		let commitments = <PendingAvailabilityCommitments>::take(&para);
+		let commitments = <PendingAvailabilityCommitments<T>>::take(&para);
 
 		if let (Some(pending), Some(commitments)) = (pending, commitments) {
 			let candidate = CommittedCandidateReceipt {
@@ -806,7 +819,7 @@ impl<T: Config> Module<T> {
 	{
 		<PendingAvailability<T>>::get(&para)
 			.map(|p| p.descriptor)
-			.and_then(|d| <PendingAvailabilityCommitments>::get(&para).map(move |c| (d, c)))
+			.and_then(|d| <PendingAvailabilityCommitments<T>>::get(&para).map(move |c| (d, c)))
 			.map(|(d, c)| CommittedCandidateReceipt { descriptor: d, commitments: c })
 	}
 
@@ -934,11 +947,10 @@ mod tests {
 		CandidateCommitments, SignedStatement, CandidateDescriptor, ValidationCode, ValidatorId,
 	};
 	use sp_keystore::{SyncCryptoStorePtr, SyncCryptoStore};
-	use frame_support::traits::{OnFinalize, OnInitialize};
 	use keyring::Sr25519Keyring;
 	use sc_keystore::LocalKeystore;
 	use crate::mock::{
-		new_test_ext, Configuration, Paras, System, Inclusion,
+		new_test_ext, Configuration, Paras, System, ParaInclusion,
 		MockGenesisConfig, Test, Shared,
 	};
 	use crate::initializer::SessionChangeNotification;
@@ -1066,7 +1078,7 @@ mod tests {
 		while System::block_number() < to {
 			let b = System::block_number();
 
-			Inclusion::initializer_finalize();
+			ParaInclusion::initializer_finalize();
 			Paras::initializer_finalize();
 			Shared::initializer_finalize();
 
@@ -1078,7 +1090,7 @@ mod tests {
 					notification.validators.clone(),
 				);
 				Paras::initializer_on_new_session(&notification);
-				Inclusion::initializer_on_new_session(&notification);
+				ParaInclusion::initializer_on_new_session(&notification);
 			}
 
 			System::on_finalize(b);
@@ -1088,7 +1100,7 @@ mod tests {
 
 			Shared::initializer_initialize(b + 1);
 			Paras::initializer_initialize(b + 1);
-			Inclusion::initializer_initialize(b + 1);
+			ParaInclusion::initializer_initialize(b + 1);
 		}
 	}
 
@@ -1201,7 +1213,7 @@ mod tests {
 				backers: default_backing_bitfield(),
 				backing_group: GroupIndex::from(0),
 			});
-			PendingAvailabilityCommitments::insert(chain_a, default_candidate.commitments.clone());
+			PendingAvailabilityCommitments::<Test>::insert(chain_a, default_candidate.commitments.clone());
 
 			<PendingAvailability<Test>>::insert(&chain_b, CandidatePendingAvailability {
 				core: CoreIndex::from(1),
@@ -1213,21 +1225,21 @@ mod tests {
 				backers: default_backing_bitfield(),
 				backing_group: GroupIndex::from(1),
 			});
-			PendingAvailabilityCommitments::insert(chain_b, default_candidate.commitments);
+			PendingAvailabilityCommitments::<Test>::insert(chain_b, default_candidate.commitments);
 
 			run_to_block(5, |_| None);
 
 			assert!(<PendingAvailability<Test>>::get(&chain_a).is_some());
 			assert!(<PendingAvailability<Test>>::get(&chain_b).is_some());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_a).is_some());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_b).is_some());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_a).is_some());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_b).is_some());
 
-			Inclusion::collect_pending(|core, _since| core == CoreIndex::from(0));
+			ParaInclusion::collect_pending(|core, _since| core == CoreIndex::from(0));
 
 			assert!(<PendingAvailability<Test>>::get(&chain_a).is_none());
 			assert!(<PendingAvailability<Test>>::get(&chain_b).is_some());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_a).is_none());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_b).is_some());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_a).is_none());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_b).is_some());
 		});
 	}
 
@@ -1280,7 +1292,7 @@ mod tests {
 					&signing_context,
 				));
 
-				assert!(Inclusion::process_bitfields(
+				assert!(ParaInclusion::process_bitfields(
 					expected_bits(),
 					vec![signed.into()],
 					&core_lookup,
@@ -1298,7 +1310,7 @@ mod tests {
 					&signing_context,
 				));
 
-				assert!(Inclusion::process_bitfields(
+				assert!(ParaInclusion::process_bitfields(
 					expected_bits() + 1,
 					vec![signed.into()],
 					&core_lookup,
@@ -1317,7 +1329,7 @@ mod tests {
 						&signing_context,
 				)).into();
 
-				assert!(Inclusion::process_bitfields(
+				assert!(ParaInclusion::process_bitfields(
 					expected_bits(),
 					vec![signed.clone(), signed],
 					&core_lookup,
@@ -1343,7 +1355,7 @@ mod tests {
 					&signing_context,
 				)).into();
 
-				assert!(Inclusion::process_bitfields(
+				assert!(ParaInclusion::process_bitfields(
 					expected_bits(),
 					vec![signed_1, signed_0],
 					&core_lookup,
@@ -1362,7 +1374,7 @@ mod tests {
 					&signing_context,
 				));
 
-				assert!(Inclusion::process_bitfields(
+				assert!(ParaInclusion::process_bitfields(
 					expected_bits(),
 					vec![signed.into()],
 					&core_lookup,
@@ -1380,7 +1392,7 @@ mod tests {
 					&signing_context,
 				));
 
-				assert!(Inclusion::process_bitfields(
+				assert!(ParaInclusion::process_bitfields(
 					expected_bits(),
 					vec![signed.into()],
 					&core_lookup,
@@ -1404,7 +1416,7 @@ mod tests {
 					backers: default_backing_bitfield(),
 					backing_group: GroupIndex::from(0),
 				});
-				PendingAvailabilityCommitments::insert(chain_a, default_candidate.commitments);
+				PendingAvailabilityCommitments::<Test>::insert(chain_a, default_candidate.commitments);
 
 				*bare_bitfield.0.get_mut(0).unwrap() = true;
 				let signed = block_on(sign_bitfield(
@@ -1415,14 +1427,14 @@ mod tests {
 					&signing_context,
 				));
 
-				assert!(Inclusion::process_bitfields(
+				assert!(ParaInclusion::process_bitfields(
 					expected_bits(),
 					vec![signed.into()],
 					&core_lookup,
 				).is_ok());
 
 				<PendingAvailability<Test>>::remove(chain_a);
-				PendingAvailabilityCommitments::remove(chain_a);
+				PendingAvailabilityCommitments::<Test>::remove(chain_a);
 			}
 
 			// bitfield signed with pending bit signed, but no commitments.
@@ -1454,7 +1466,7 @@ mod tests {
 
 				// no core is freed
 				assert_eq!(
-					Inclusion::process_bitfields(
+					ParaInclusion::process_bitfields(
 						expected_bits(),
 						vec![signed.into()],
 						&core_lookup,
@@ -1517,7 +1529,7 @@ mod tests {
 				backers: backing_bitfield(&[3, 4]),
 				backing_group: GroupIndex::from(0),
 			});
-			PendingAvailabilityCommitments::insert(chain_a, candidate_a.commitments);
+			PendingAvailabilityCommitments::<Test>::insert(chain_a, candidate_a.commitments);
 
 			let candidate_b = TestCandidateBuilder {
 				para_id: chain_b,
@@ -1535,7 +1547,7 @@ mod tests {
 				backers: backing_bitfield(&[0, 2]),
 				backing_group: GroupIndex::from(1),
 			});
-			PendingAvailabilityCommitments::insert(chain_b, candidate_b.commitments);
+			PendingAvailabilityCommitments::<Test>::insert(chain_b, candidate_b.commitments);
 
 			// this bitfield signals that a and b are available.
 			let a_and_b_available = {
@@ -1578,7 +1590,7 @@ mod tests {
 				)).into())
 			}).collect();
 
-			assert!(Inclusion::process_bitfields(
+			assert!(ParaInclusion::process_bitfields(
 				expected_bits(),
 				signed_bitfields,
 				&core_lookup,
@@ -1587,8 +1599,8 @@ mod tests {
 			// chain A had 4 signing off, which is >= threshold.
 			// chain B has 3 signing off, which is < threshold.
 			assert!(<PendingAvailability<Test>>::get(&chain_a).is_none());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_a).is_none());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_b).is_some());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_a).is_none());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_b).is_some());
 			assert_eq!(
 				<PendingAvailability<Test>>::get(&chain_b).unwrap().availability_votes,
 				{
@@ -1716,7 +1728,7 @@ mod tests {
 				));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![chain_b_assignment.clone()],
@@ -1775,7 +1787,7 @@ mod tests {
 
 				// out-of-order manifests as unscheduled.
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed_b, backed_a],
 						vec![chain_a_assignment.clone(), chain_b_assignment.clone()],
@@ -1810,7 +1822,7 @@ mod tests {
 				));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![chain_a_assignment.clone()],
@@ -1847,7 +1859,7 @@ mod tests {
 				));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![chain_a_assignment.clone()],
@@ -1884,7 +1896,7 @@ mod tests {
 				));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![
@@ -1928,7 +1940,7 @@ mod tests {
 				));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![thread_a_assignment.clone()],
@@ -1974,10 +1986,10 @@ mod tests {
 					backers: default_backing_bitfield(),
 					backing_group: GroupIndex::from(0),
 				});
-				<PendingAvailabilityCommitments>::insert(&chain_a, candidate.commitments);
+				<PendingAvailabilityCommitments<Test>>::insert(&chain_a, candidate.commitments);
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![chain_a_assignment.clone()],
@@ -1987,7 +1999,7 @@ mod tests {
 				);
 
 				<PendingAvailability<Test>>::remove(&chain_a);
-				<PendingAvailabilityCommitments>::remove(&chain_a);
+				<PendingAvailabilityCommitments<Test>>::remove(&chain_a);
 			}
 
 			// messed up commitments storage - do not panic - reject.
@@ -2007,7 +2019,7 @@ mod tests {
 				);
 
 				// this is not supposed to happen
-				<PendingAvailabilityCommitments>::insert(&chain_a, candidate.commitments.clone());
+				<PendingAvailabilityCommitments<Test>>::insert(&chain_a, candidate.commitments.clone());
 
 				let backed = block_on(back_candidate(
 					candidate,
@@ -2019,7 +2031,7 @@ mod tests {
 				));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![chain_a_assignment.clone()],
@@ -2028,7 +2040,7 @@ mod tests {
 					Err(Error::<Test>::CandidateScheduledBeforeParaFree.into()),
 				);
 
-				<PendingAvailabilityCommitments>::remove(&chain_a);
+				<PendingAvailabilityCommitments<Test>>::remove(&chain_a);
 			}
 
 			// interfering code upgrade - reject
@@ -2066,7 +2078,7 @@ mod tests {
 				assert_eq!(Paras::last_code_upgrade(chain_a, true), Some(10));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![chain_a_assignment.clone()],
@@ -2102,7 +2114,7 @@ mod tests {
 				));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![chain_a_assignment.clone()],
@@ -2139,7 +2151,7 @@ mod tests {
 				));
 
 				assert_eq!(
-					Inclusion::process_candidates(
+					ParaInclusion::process_candidates(
 						Default::default(),
 						vec![backed],
 						vec![chain_a_assignment.clone()],
@@ -2281,7 +2293,7 @@ mod tests {
 				BackingKind::Threshold,
 			));
 
-			let occupied_cores = Inclusion::process_candidates(
+			let occupied_cores = ParaInclusion::process_candidates(
 				Default::default(),
 				vec![backed_a, backed_b, backed_c],
 				vec![
@@ -2308,7 +2320,7 @@ mod tests {
 				})
 			);
 			assert_eq!(
-				<PendingAvailabilityCommitments>::get(&chain_a),
+				<PendingAvailabilityCommitments<Test>>::get(&chain_a),
 				Some(candidate_a.commitments),
 			);
 
@@ -2326,7 +2338,7 @@ mod tests {
 				})
 			);
 			assert_eq!(
-				<PendingAvailabilityCommitments>::get(&chain_b),
+				<PendingAvailabilityCommitments<Test>>::get(&chain_b),
 				Some(candidate_b.commitments),
 			);
 
@@ -2344,7 +2356,7 @@ mod tests {
 				})
 			);
 			assert_eq!(
-				<PendingAvailabilityCommitments>::get(&thread_a),
+				<PendingAvailabilityCommitments<Test>>::get(&thread_a),
 				Some(candidate_c.commitments),
 			);
 		});
@@ -2417,7 +2429,7 @@ mod tests {
 				BackingKind::Threshold,
 			));
 
-			let occupied_cores = Inclusion::process_candidates(
+			let occupied_cores = ParaInclusion::process_candidates(
 				Default::default(),
 				vec![backed_a],
 				vec![
@@ -2442,7 +2454,7 @@ mod tests {
 				})
 			);
 			assert_eq!(
-				<PendingAvailabilityCommitments>::get(&chain_a),
+				<PendingAvailabilityCommitments<Test>>::get(&chain_a),
 				Some(candidate_a.commitments),
 			);
 		});
@@ -2517,7 +2529,7 @@ mod tests {
 				backers: default_backing_bitfield(),
 				backing_group: GroupIndex::from(0),
 			});
-			<PendingAvailabilityCommitments>::insert(&chain_a, candidate.commitments.clone());
+			<PendingAvailabilityCommitments<Test>>::insert(&chain_a, candidate.commitments.clone());
 
 			<PendingAvailability<Test>>::insert(&chain_b, CandidatePendingAvailability {
 				core: CoreIndex::from(1),
@@ -2529,7 +2541,7 @@ mod tests {
 				backers: default_backing_bitfield(),
 				backing_group: GroupIndex::from(1),
 			});
-			<PendingAvailabilityCommitments>::insert(&chain_b, candidate.commitments);
+			<PendingAvailabilityCommitments<Test>>::insert(&chain_b, candidate.commitments);
 
 			run_to_block(11, |_| None);
 
@@ -2541,8 +2553,8 @@ mod tests {
 
 			assert!(<PendingAvailability<Test>>::get(&chain_a).is_some());
 			assert!(<PendingAvailability<Test>>::get(&chain_b).is_some());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_a).is_some());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_b).is_some());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_a).is_some());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_b).is_some());
 
 			run_to_block(12, |n| match n {
 				12 => Some(SessionChangeNotification {
@@ -2564,12 +2576,12 @@ mod tests {
 
 			assert!(<PendingAvailability<Test>>::get(&chain_a).is_none());
 			assert!(<PendingAvailability<Test>>::get(&chain_b).is_none());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_a).is_none());
-			assert!(<PendingAvailabilityCommitments>::get(&chain_b).is_none());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_a).is_none());
+			assert!(<PendingAvailabilityCommitments<Test>>::get(&chain_b).is_none());
 
 			assert!(<AvailabilityBitfields<Test>>::iter().collect::<Vec<_>>().is_empty());
 			assert!(<PendingAvailability<Test>>::iter().collect::<Vec<_>>().is_empty());
-			assert!(<PendingAvailabilityCommitments>::iter().collect::<Vec<_>>().is_empty());
+			assert!(<PendingAvailabilityCommitments<Test>>::iter().collect::<Vec<_>>().is_empty());
 		});
 	}
 

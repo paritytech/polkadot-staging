@@ -320,7 +320,7 @@ pub fn dmq_contents<T: dmp::Config>(
 pub fn inbound_hrmp_channels_contents<T: hrmp::Config>(
 	recipient: ParaId,
 ) -> BTreeMap<ParaId, Vec<InboundHrmpMessage<T::BlockNumber>>> {
-	<hrmp::Module<T>>::inbound_hrmp_channels_contents(recipient)
+	<hrmp::Pallet<T>>::inbound_hrmp_channels_contents(recipient)
 }
 
 /// Implementation for the `validation_code_by_hash` function of the runtime API.

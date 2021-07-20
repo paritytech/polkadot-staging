@@ -221,7 +221,7 @@ construct_runtime! {
 		Initializer: parachains_initializer::{Pallet, Call, Storage},
 		Dmp: parachains_dmp::{Pallet, Call, Storage},
 		Ump: parachains_ump::{Pallet, Call, Storage, Event},
-		Hrmp: parachains_hrmp::{Pallet, Call, Storage, Event, Config},
+		Hrmp: parachains_hrmp::{Pallet, Call, Storage, Event<T>, Config},
 		SessionInfo: parachains_session_info::{Pallet, Call, Storage},
 
 		// Parachain Onboarding Pallets

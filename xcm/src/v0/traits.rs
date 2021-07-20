@@ -24,11 +24,14 @@ use super::{MultiLocation, Xcm};
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Debug)]
 pub enum Error {
 	Undefined,
+	/// An arithmetic overflow happened.
 	Overflow,
 	/// The operation is intentionally unsupported.
 	Unimplemented,
 	UnhandledXcmVersion,
+	/// The implementation does not handle a given XCM.
 	UnhandledXcmMessage,
+	/// The implementation does not handle an effect present in an XCM.
 	UnhandledEffect,
 	EscalationOfPrivilege,
 	UntrustedReserveLocation,
@@ -43,10 +46,15 @@ pub enum Error {
 	FailedToDecode,
 	BadOrigin,
 	ExceedsMaxMessageSize,
+	/// An asset transaction (like withdraw or deposit) failed.
+	/// See implementors of the `TransactAsset` trait for sources.
+	/// Causes can include type conversion failures between id or balance types.
 	FailedToTransactAsset(#[codec(skip)] &'static str),
 	/// Execution of the XCM would potentially result in a greater weight used than the pre-specified
 	/// weight limit. The amount that is potentially required is the parameter.
 	WeightLimitReached(Weight),
+	/// An asset wildcard was passed where it was not expected (e.g. as the asset to withdraw in a
+	/// `WithdrawAsset` XCM).
 	Wildcard,
 	/// The case where an XCM message has specified a optional weight limit and the weight required for
 	/// processing is too great.

@@ -130,7 +130,10 @@ impl TransactAsset for Tuple {
 
 	fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
 		for_tuples!( #(
-			match Tuple::deposit_asset(what, who) { o @ Ok(_) => return o, _ => () }
+			match Tuple::deposit_asset(what, who) {
+				Err(XcmError::AssetNotFound) => (),
+				r => return r,
+			}
 		)* );
 		log::trace!(
 			target: "xcm::TransactAsset::deposit_asset",
@@ -138,25 +141,31 @@ impl TransactAsset for Tuple {
 			what,
 			who,
 		);
-		Err(XcmError::Unimplemented)
+		Err(XcmError::AssetNotFound)
 	}
 
 	fn withdraw_asset(what: &MultiAsset, who: &MultiLocation) -> Result<Assets, XcmError> {
 		for_tuples!( #(
-			match Tuple::withdraw_asset(what, who) { o @ Ok(_) => return o, _ => () }
+			match Tuple::withdraw_asset(what, who) {
+				Err(XcmError::AssetNotFound) => (),
+				r => return r,
+			}
 		)* );
 		log::trace!(
 			target: "xcm::TransactAsset::withdraw_asset",
 			"did not withdraw asset: what: {:?}, who: {:?}",
-			what, 
+			what,
 			who,
 		);
-		Err(XcmError::Unimplemented)
+		Err(XcmError::AssetNotFound)
 	}
 
 	fn transfer_asset(what: &MultiAsset, from: &MultiLocation, to: &MultiLocation) -> Result<Assets, XcmError> {
 		for_tuples!( #(
-			match Tuple::transfer_asset(what, from, to) { o @ Ok(_) => return o, _ => () }
+			match Tuple::transfer_asset(what, from, to) {
+				Err(XcmError::AssetNotFound) => (),
+				r => return r,
+			}
 		)* );
 		log::trace!(
 			target: "xcm::TransactAsset::transfer_asset",
@@ -165,6 +174,6 @@ impl TransactAsset for Tuple {
 			from,
 			to,
 		);
-		Err(XcmError::Unimplemented)
+		Err(XcmError::AssetNotFound)
 	}
 }

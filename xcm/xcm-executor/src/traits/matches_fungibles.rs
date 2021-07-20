@@ -33,7 +33,7 @@ impl From<Error> for XcmError {
 	fn from(e: Error) -> Self {
 		use XcmError::FailedToTransactAsset;
 		match e {
-			Error::AssetNotFound => FailedToTransactAsset("AssetNotFound"),
+			Error::AssetNotFound => XcmError::AssetNotFound,
 			Error::AccountIdConversionFailed => FailedToTransactAsset("AccountIdConversionFailed"),
 			Error::AmountToBalanceConversionFailed => FailedToTransactAsset("AmountToBalanceConversionFailed"),
 			Error::AssetIdConversionFailed => FailedToTransactAsset("AssetIdConversionFailed"),

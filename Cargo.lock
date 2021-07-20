@@ -5952,6 +5952,7 @@ dependencies = [
  "polkadot-runtime",
  "rococo-runtime",
  "sc-client-api",
+ "sc-consensus",
  "sc-executor",
  "sc-service",
  "sp-api",

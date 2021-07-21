@@ -117,7 +117,7 @@ decl_module! {
 			);
 
 			// Handle disputes logic.
-			let current_session = <shared::Module<T>>::session_index();
+			let current_session = <shared::Pallet<T>>::session_index();
 			let freed_disputed: Vec<(_, FreedReason)> = {
 				let fresh_disputes = T::DisputesHandler::provide_multi_dispute_data(disputes)?;
 				if T::DisputesHandler::is_frozen() {

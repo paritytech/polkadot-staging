@@ -239,7 +239,7 @@ impl<T: Config> Module<T> {
 		expected_bits: usize,
 		unchecked_bitfields: UncheckedSignedAvailabilityBitfields,
 		core_lookup: impl Fn(CoreIndex) -> Option<ParaId>,
-	) -> Result<Vec<CoreIndex>, DispatchError> {
+	) -> Result<Vec<(CoreIndex, CandidateHash)>, DispatchError> {
 		let validators = shared::Pallet::<T>::active_validator_keys();
 		let session_index = shared::Pallet::<T>::session_index();
 

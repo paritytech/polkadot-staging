@@ -925,6 +925,7 @@ parameter_types! {
 	pub const ChallengePeriod: BlockNumber = 7 * DAYS;
 	pub const MaxCandidateIntake: u32 = 1;
 	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
+	pub const MaxPayouts: u32 = 100;
 }
 
 impl pallet_society::Config for Runtime {
@@ -943,6 +944,7 @@ impl pallet_society::Config for Runtime {
 	type ChallengePeriod = ChallengePeriod;
 	type MaxCandidateIntake = MaxCandidateIntake;
 	type PalletId = SocietyPalletId;
+	type MaxPayouts = MaxPayouts;
 }
 
 parameter_types! {

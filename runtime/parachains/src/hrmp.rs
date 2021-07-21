@@ -1051,7 +1051,7 @@ impl<T: Config> Module<T> {
 			.encode()
 		};
 		if let Err(dmp::QueueDownwardMessageError::ExceedsMaxMessageSize) =
-			<dmp::Module<T>>::queue_downward_message(&config, recipient, notification_bytes)
+			<dmp::Pallet<T>>::queue_downward_message(&config, recipient, notification_bytes)
 		{
 			// this should never happen unless the max downward message size is configured to an
 			// jokingly small number.
@@ -1114,7 +1114,7 @@ impl<T: Config> Module<T> {
 			.encode()
 		};
 		if let Err(dmp::QueueDownwardMessageError::ExceedsMaxMessageSize) =
-			<dmp::Module<T>>::queue_downward_message(&config, sender, notification_bytes)
+			<dmp::Pallet<T>>::queue_downward_message(&config, sender, notification_bytes)
 		{
 			// this should never happen unless the max downward message size is configured to an
 			// jokingly small number.
@@ -1164,7 +1164,7 @@ impl<T: Config> Module<T> {
 			channel_id.sender
 		};
 		if let Err(dmp::QueueDownwardMessageError::ExceedsMaxMessageSize) =
-			<dmp::Module<T>>::queue_downward_message(&config, opposite_party, notification_bytes)
+			<dmp::Pallet<T>>::queue_downward_message(&config, opposite_party, notification_bytes)
 		{
 			// this should never happen unless the max downward message size is configured to an
 			// jokingly small number.

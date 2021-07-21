@@ -313,7 +313,7 @@ pub fn session_info<T: session_info::Config>(index: SessionIndex) -> Option<Sess
 pub fn dmq_contents<T: dmp::Config>(
 	recipient: ParaId,
 ) -> Vec<InboundDownwardMessage<T::BlockNumber>> {
-	<dmp::Module<T>>::dmq_contents(recipient)
+	<dmp::Pallet<T>>::dmq_contents(recipient)
 }
 
 /// Implementation for the `inbound_hrmp_channels_contents` function of the runtime API.

@@ -18,11 +18,13 @@ use crate::{
 	configuration::{self, HostConfiguration},
 	initializer,
 };
-use frame_support::{decl_module, decl_storage, StorageMap, weights::Weight, traits::Get};
+use frame_support::pallet_prelude::*;
 use sp_std::{fmt, prelude::*};
 use sp_runtime::traits::{BlakeTwo256, Hash as HashT, SaturatedConversion};
 use primitives::v1::{Id as ParaId, DownwardMessage, InboundDownwardMessage, Hash};
 use xcm::v0::Error as XcmError;
+
+pub use pallet::*;
 
 /// An error sending a downward message.
 #[cfg_attr(test, derive(Debug))]
@@ -71,30 +73,43 @@ impl fmt::Debug for ProcessedDownwardMessagesAcceptanceErr {
 	}
 }
 
-pub trait Config: frame_system::Config + configuration::Config {}
+#[frame_support::pallet]
+pub mod pallet {
+	use super::*;
 
-decl_storage! {
-	trait Store for Module<T: Config> as Dmp {
-		/// The downward messages addressed for a certain para.
-		DownwardMessageQueues: map hasher(twox_64_concat) ParaId => Vec<InboundDownwardMessage<T::BlockNumber>>;
-		/// A mapping that stores the downward message queue MQC head for each para.
-		///
-		/// Each link in this chain has a form:
-		/// `(prev_head, B, H(M))`, where
-		/// - `prev_head`: is the previous head hash or zero if none.
-		/// - `B`: is the relay-chain block number in which a message was appended.
-		/// - `H(M)`: is the hash of the message being appended.
-		DownwardMessageQueueHeads: map hasher(twox_64_concat) ParaId => Hash;
-	}
-}
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T>(_);
 
-decl_module! {
-	/// The DMP module.
-	pub struct Module<T: Config> for enum Call where origin: <T as frame_system::Config>::Origin { }
+	#[pallet::config]
+	pub trait Config: frame_system::Config + configuration::Config {}
+
+	/// The downward messages addressed for a certain para.
+	#[pallet::storage]
+	pub type DownwardMessageQueues<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		ParaId,
+		Vec<InboundDownwardMessage<T::BlockNumber>>,
+		ValueQuery
+	>;
+
+	/// A mapping that stores the downward message queue MQC head for each para.
+	///
+	/// Each link in this chain has a form:
+	/// `(prev_head, B, H(M))`, where
+	/// - `prev_head`: is the previous head hash or zero if none.
+	/// - `B`: is the relay-chain block number in which a message was appended.
+	/// - `H(M)`: is the hash of the message being appended.
+	#[pallet::storage]
+	pub type DownwardMessageQueueHeads<T: Config> = StorageMap<_, Twox64Concat, ParaId, Hash, ValueQuery>;
+
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {}
 }
 
 /// Routines and getters related to downward message passing.
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
 	/// Block initialization logic, called by initializer.
 	pub(crate) fn initializer_initialize(_now: T::BlockNumber) -> Weight {
 		0
@@ -226,7 +241,6 @@ mod tests {
 	use super::*;
 	use hex_literal::hex;
 	use primitives::v1::BlockNumber;
-	use frame_support::traits::{OnFinalize, OnInitialize};
 	use parity_scale_codec::Encode;
 	use crate::mock::{Configuration, new_test_ext, System, Dmp, MockGenesisConfig, Paras};
 

@@ -1078,7 +1078,7 @@ construct_runtime! {
 		ParasScheduler: parachains_scheduler::{Pallet, Call, Storage} = 46,
 		Paras: parachains_paras::{Pallet, Call, Storage, Event, Config} = 47,
 		Initializer: parachains_initializer::{Pallet, Call, Storage} = 48,
-		ParasDmp: parachains_dmp::{Pallet, Call, Storage} = 49,
+		Dmp: parachains_dmp::{Pallet, Call, Storage} = 49,
 		ParasUmp: parachains_ump::{Pallet, Call, Storage, Event} = 50,
 		ParasHrmp: parachains_hrmp::{Pallet, Call, Storage, Event} = 51,
 		ParasSessionInfo: parachains_session_info::{Pallet, Call, Storage} = 52,

@@ -684,7 +684,7 @@ impl<T: Config> Module<T> {
 		}
 
 		// enact the messaging facet of the candidate.
-		weight += <dmp::Module<T>>::prune_dmq(
+		weight += <dmp::Pallet<T>>::prune_dmq(
 			receipt.descriptor.para_id,
 			commitments.processed_downward_messages,
 		);
@@ -905,7 +905,7 @@ impl<T: Config> CandidateCheckContext<T> {
 		}
 
 		// check if the candidate passes the messaging acceptance criteria
-		<dmp::Module<T>>::check_processed_downward_messages(
+		<dmp::Pallet<T>>::check_processed_downward_messages(
 			para_id,
 			processed_downward_messages,
 		)?;

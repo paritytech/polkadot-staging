@@ -35,7 +35,7 @@ fn validators_to_reward<C, T, I>(validators: &'_ [T], indirect_indices: I) -> im
 	C: shared::Config,
 	I: IntoIterator<Item = ValidatorIndex>
 {
-	let validator_indirection = <shared::Module<C>>::active_validator_indices();
+	let validator_indirection = <shared::Pallet<C>>::active_validator_indices();
 
 	indirect_indices.into_iter()
 		.filter_map(move |i| validator_indirection.get(i.0 as usize).map(|v| v.clone()))
@@ -65,7 +65,7 @@ mod tests {
 	use super::*;
 	use primitives::v1::ValidatorId;
 	use crate::configuration::HostConfiguration;
-	use crate::mock::{new_test_ext, MockGenesisConfig, Shared, Test};
+	use crate::mock::{new_test_ext, MockGenesisConfig, ParasShared, Test};
 	use keyring::Sr25519Keyring;
 
 	#[test]
@@ -88,7 +88,7 @@ mod tests {
 
 			let pubkeys = validator_pubkeys(&validators);
 
-			let shuffled_pubkeys = Shared::initializer_on_new_session(
+			let shuffled_pubkeys = ParasShared::initializer_on_new_session(
 				1,
 				[1; 32],
 				&config,
@@ -107,7 +107,7 @@ mod tests {
 			);
 
 			assert_eq!(
-				Shared::active_validator_indices(),
+				ParasShared::active_validator_indices(),
 				vec![
 					ValidatorIndex(4),
 					ValidatorIndex(1),

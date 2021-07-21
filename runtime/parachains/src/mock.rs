@@ -47,7 +47,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Paras: paras::{Pallet, Origin, Call, Storage, Event, Config},
 		Configuration: configuration::{Pallet, Call, Storage, Config<T>},
-		Shared: shared::{Pallet, Call, Storage},
+		ParasShared: shared::{Pallet, Call, Storage},
 		Inclusion: inclusion::{Pallet, Call, Storage, Event<T>},
 		Scheduler: scheduler::{Pallet, Call, Storage},
 		Initializer: initializer::{Pallet, Call, Storage},

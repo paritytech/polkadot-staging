@@ -213,7 +213,7 @@ construct_runtime! {
 		// Parachains modules.
 		ParachainsOrigin: parachains_origin::{Pallet, Origin},
 		ParachainsConfiguration: parachains_configuration::{Pallet, Call, Storage, Config<T>},
-		Shared: parachains_shared::{Pallet, Call, Storage},
+		ParasShared: parachains_shared::{Pallet, Call, Storage},
 		Inclusion: parachains_inclusion::{Pallet, Call, Storage, Event<T>},
 		ParasInherent: parachains_paras_inherent::{Pallet, Call, Storage, Inherent},
 		Scheduler: parachains_scheduler::{Pallet, Call, Storage},

@@ -32,7 +32,7 @@ use crate::{initializer, inclusion, scheduler, configuration, paras, session_inf
 
 /// Implementation for the `validators` function of the runtime API.
 pub fn validators<T: initializer::Config>() -> Vec<ValidatorId> {
-	<shared::Module<T>>::active_validator_keys()
+	<shared::Pallet<T>>::active_validator_keys()
 }
 
 /// Implementation for the `validator_groups` function of the runtime API.
@@ -231,7 +231,7 @@ pub fn session_index_for_child<T: initializer::Config>() -> SessionIndex {
 	//
 	// Incidentally, this is also the rationale for why it is OK to query validators or
 	// occupied cores or etc. and expect the correct response "for child".
-	<shared::Module<T>>::session_index()
+	<shared::Pallet<T>>::session_index()
 }
 
 /// Implementation for the `AuthorityDiscoveryApi::authorities()` function of the runtime API.

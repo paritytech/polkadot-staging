@@ -1016,18 +1016,18 @@ mod tests {
 	use primitives::v1::BlockNumber;
 	use frame_support::assert_ok;
 
-	use crate::mock::{new_test_ext, Paras, Shared, System, MockGenesisConfig};
+	use crate::mock::{new_test_ext, Paras, ParasShared, System, MockGenesisConfig};
 	use crate::configuration::HostConfiguration;
 
 	fn run_to_block(to: BlockNumber, new_session: Option<Vec<BlockNumber>>) {
 		while System::block_number() < to {
 			let b = System::block_number();
 			Paras::initializer_finalize();
-			Shared::initializer_finalize();
+			ParasShared::initializer_finalize();
 			if new_session.as_ref().map_or(false, |v| v.contains(&(b + 1))) {
 				let mut session_change_notification = SessionChangeNotification::default();
-				session_change_notification.session_index = Shared::session_index() + 1;
-				Shared::initializer_on_new_session(
+				session_change_notification.session_index = ParasShared::session_index() + 1;
+				ParasShared::initializer_on_new_session(
 					session_change_notification.session_index,
 					session_change_notification.random_seed,
 					&session_change_notification.new_config,
@@ -1040,7 +1040,7 @@ mod tests {
 			System::on_initialize(b + 1);
 			System::set_block_number(b + 1);
 
-			Shared::initializer_initialize(b + 1);
+			ParasShared::initializer_initialize(b + 1);
 			Paras::initializer_initialize(b + 1);
 		}
 	}

@@ -573,6 +573,7 @@ mod tests {
 			Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 			ParachainsConfiguration: configuration::{Pallet, Call, Storage, Config<T>},
 			Parachains: paras::{Pallet, Origin, Call, Storage, Config, Event},
+			ParasShared: shared::{Pallet, Call, Storage},
 			Registrar: paras_registrar::{Pallet, Call, Storage, Event<T>},
 		}
 	);
